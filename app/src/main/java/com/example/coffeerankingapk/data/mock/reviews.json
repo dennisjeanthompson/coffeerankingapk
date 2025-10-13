@@ -1,0 +1,90 @@
+[
+  {
+    "id": "1",
+    "cafeId": "1",
+    "userName": "Alice Johnson",
+    "userId": "user_1",
+    "rating": 5,
+    "comment": "Amazing coffee and atmosphere! The baristas are super friendly and knowledgeable. Perfect spot for morning meetings.",
+    "date": "2023-10-10T08:30:00Z",
+    "helpfulCount": 12,
+    "verified": true
+  },
+  {
+    "id": "2",
+    "cafeId": "1",
+    "userName": "Bob Smith",
+    "userId": "user_2",
+    "rating": 4,
+    "comment": "Great service, will come back! The WiFi is fast and the seating is comfortable for working.",
+    "date": "2023-10-09T14:15:00Z",
+    "helpfulCount": 8,
+    "verified": false
+  },
+  {
+    "id": "3",
+    "cafeId": "1",
+    "userName": "Carol Davis",
+    "userId": "user_3",
+    "rating": 5,
+    "comment": "Best latte in town! I've tried many places and this one consistently delivers quality coffee.",
+    "date": "2023-10-03T10:45:00Z",
+    "helpfulCount": 15,
+    "verified": true
+  },
+  {
+    "id": "4",
+    "cafeId": "2",
+    "userName": "David Wilson",
+    "userId": "user_4",
+    "rating": 5,
+    "comment": "Incredible single-origin selections. The pour-over here is exceptional and the staff knows their coffee.",
+    "date": "2023-10-08T11:20:00Z",
+    "helpfulCount": 9,
+    "verified": true
+  },
+  {
+    "id": "5",
+    "cafeId": "2",
+    "userName": "Emma Brown",
+    "userId": "user_5",
+    "rating": 4,
+    "comment": "Love the roasting process they show. Educational and delicious!",
+    "date": "2023-10-05T16:30:00Z",
+    "helpfulCount": 6,
+    "verified": false
+  },
+  {
+    "id": "6",
+    "cafeId": "3",
+    "userName": "Frank Miller",
+    "userId": "user_6",
+    "rating": 4,
+    "comment": "Great breakfast spot! The avocado toast is fresh and the coffee pairs perfectly.",
+    "date": "2023-10-07T09:00:00Z",
+    "helpfulCount": 4,
+    "verified": true
+  },
+  {
+    "id": "7",
+    "cafeId": "4",
+    "userName": "Grace Taylor",
+    "userId": "user_7",
+    "rating": 5,
+    "comment": "Love the evening vibe with live music. Perfect for a date or relaxing after work.",
+    "date": "2023-10-06T19:45:00Z",
+    "helpfulCount": 11,
+    "verified": true
+  },
+  {
+    "id": "8",
+    "cafeId": "4",
+    "userName": "Henry Lee",
+    "userId": "user_8",
+    "rating": 4,
+    "comment": "Unique concept for an evening coffee place. The art on the walls changes monthly.",
+    "date": "2023-10-04T20:15:00Z",
+    "helpfulCount": 7,
+    "verified": false
+  }
+]

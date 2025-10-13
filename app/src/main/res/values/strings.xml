@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Coffee Ranking</string>
+    <string name="place_your_cafe">Place your cafe</string>
+    <string name="confirm_location">Confirm location</string>
+    <string name="create_coupon">Create coupon</string>
+    <string name="claim_reward">Claim reward</string>
+    <string name="share_cafe">Share cafe</string>
+    <string name="view_analytics">View Analytics</string>
+    <string name="total_reviews">Total Reviews</string>
+    <string name="avg_rating">Avg Rating</string>
+    <string name="monthly_visits">Monthly Visits</string>
+</resources>

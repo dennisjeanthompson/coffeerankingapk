@@ -1,0 +1,90 @@
+[
+  {
+    "id": "1",
+    "name": "The Roasted Bean",
+    "description": "Cozy coffee shop with artisan pastries and excellent WiFi for remote work.",
+    "rating": 4.6,
+    "imageUrl": "https://via.placeholder.com/300x200/8B4513/FFFFFF?text=Cafe+1",
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "address": "123 Main St, San Francisco, CA 94102",
+    "phone": "(555) 123-4567",
+    "hours": {
+      "monday": "6:00 AM - 8:00 PM",
+      "tuesday": "6:00 AM - 8:00 PM",
+      "wednesday": "6:00 AM - 8:00 PM",
+      "thursday": "6:00 AM - 8:00 PM",
+      "friday": "6:00 AM - 9:00 PM",
+      "saturday": "7:00 AM - 9:00 PM",
+      "sunday": "7:00 AM - 7:00 PM"
+    },
+    "amenities": ["WiFi", "Outdoor Seating", "Pet Friendly", "Takeout"],
+    "specialties": ["Espresso", "Artisan Pastries", "Cold Brew"]
+  },
+  {
+    "id": "2",
+    "name": "Brew & Grind",
+    "description": "Specialty coffee roasters serving single-origin beans from around the world.",
+    "rating": 4.8,
+    "imageUrl": "https://via.placeholder.com/300x200/6B3E2A/FFFFFF?text=Cafe+2",
+    "latitude": 37.7849,
+    "longitude": -122.4094,
+    "address": "456 Coffee Ave, San Francisco, CA 94103",
+    "phone": "(555) 234-5678",
+    "hours": {
+      "monday": "5:30 AM - 7:00 PM",
+      "tuesday": "5:30 AM - 7:00 PM",
+      "wednesday": "5:30 AM - 7:00 PM",
+      "thursday": "5:30 AM - 7:00 PM",
+      "friday": "5:30 AM - 8:00 PM",
+      "saturday": "6:00 AM - 8:00 PM",
+      "sunday": "6:00 AM - 6:00 PM"
+    },
+    "amenities": ["WiFi", "Coffee Roasting", "Bean Sales", "Tasting Events"],
+    "specialties": ["Single-Origin", "Pour Over", "French Press"]
+  },
+  {
+    "id": "3",
+    "name": "Morning Glory Cafe",
+    "description": "Fresh breakfast options and the best espresso in town. Pet-friendly atmosphere.",
+    "rating": 4.4,
+    "imageUrl": "https://via.placeholder.com/300x200/8B4513/FFFFFF?text=Cafe+3",
+    "latitude": 37.7649,
+    "longitude": -122.4294,
+    "address": "789 Breakfast Blvd, San Francisco, CA 94104",
+    "phone": "(555) 345-6789",
+    "hours": {
+      "monday": "6:30 AM - 3:00 PM",
+      "tuesday": "6:30 AM - 3:00 PM",
+      "wednesday": "6:30 AM - 3:00 PM",
+      "thursday": "6:30 AM - 3:00 PM",
+      "friday": "6:30 AM - 4:00 PM",
+      "saturday": "7:00 AM - 4:00 PM",
+      "sunday": "7:00 AM - 3:00 PM"
+    },
+    "amenities": ["Pet Friendly", "Outdoor Seating", "Breakfast Menu", "Fresh Juice"],
+    "specialties": ["Breakfast", "Fresh Juice", "Avocado Toast"]
+  },
+  {
+    "id": "4",
+    "name": "Sunset Coffee Co",
+    "description": "Evening coffee experience with live acoustic music and local art displays.",
+    "rating": 4.7,
+    "imageUrl": "https://via.placeholder.com/300x200/6B3E2A/FFFFFF?text=Cafe+4",
+    "latitude": 37.7549,
+    "longitude": -122.4394,
+    "address": "321 Sunset Dr, San Francisco, CA 94105",
+    "phone": "(555) 456-7890",
+    "hours": {
+      "monday": "12:00 PM - 10:00 PM",
+      "tuesday": "12:00 PM - 10:00 PM",
+      "wednesday": "12:00 PM - 10:00 PM",
+      "thursday": "12:00 PM - 11:00 PM",
+      "friday": "12:00 PM - 11:00 PM",
+      "saturday": "10:00 AM - 11:00 PM",
+      "sunday": "10:00 AM - 9:00 PM"
+    },
+    "amenities": ["Live Music", "Art Gallery", "Late Hours", "Wine & Beer"],
+    "specialties": ["Evening Coffee", "Desserts", "Live Music"]
+  }
+]
