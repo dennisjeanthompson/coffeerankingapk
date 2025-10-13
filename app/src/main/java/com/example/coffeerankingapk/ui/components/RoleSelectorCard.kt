@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +41,7 @@ fun RoleSelectorCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = if (isOwnerRole) Icons.Default.Business else Icons.Default.Person,
+                imageVector = if (isOwnerRole) Icons.Default.Home else Icons.Default.Person,
                 contentDescription = null,
                 tint = PrimaryBrown,
                 modifier = Modifier.size(48.dp)

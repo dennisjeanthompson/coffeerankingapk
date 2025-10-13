@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import com.example.coffeerankingapk.ui.theme.Success
 import com.example.coffeerankingapk.ui.theme.TextMuted
 
@@ -37,7 +38,7 @@ fun RatingStars(
             val isHalfSelected = index == rating.toInt() && rating % 1 != 0f
             
             Icon(
-                imageVector = if (isSelected || isHalfSelected) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                imageVector = if (isSelected || isHalfSelected) Icons.Filled.Star else Icons.Outlined.Star,
                 contentDescription = "Star ${index + 1}",
                 tint = if (isSelected || isHalfSelected) Success else TextMuted,
                 modifier = Modifier
@@ -75,7 +76,7 @@ fun InteractiveRatingStars(
             val isSelected = index < currentRating
             
             Icon(
-                imageVector = if (isSelected) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                imageVector = if (isSelected) Icons.Filled.Star else Icons.Outlined.Star,
                 contentDescription = "Star ${index + 1}",
                 tint = if (isSelected) Success else TextMuted,
                 modifier = Modifier

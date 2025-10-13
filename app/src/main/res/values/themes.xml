@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!-- Base application theme. -->
-    <style name="Theme.CoffeeRankingAPK" parent="Theme.Material3.DayNight">
+    <style name="Theme.CoffeeRankingAPK" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Customize your theme here. -->
-        <item name="colorPrimary">@android:color/system_accent1_600</item>
     </style>
 </resources>

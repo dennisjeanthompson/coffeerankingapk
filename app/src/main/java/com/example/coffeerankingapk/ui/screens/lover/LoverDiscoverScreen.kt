@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -92,7 +92,7 @@ fun LoverDiscoverScreen(
                     onClick = { selectedBottomNavItem = 0 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Map, contentDescription = "Map") },
+                    icon = { Icon(Icons.Default.Place, contentDescription = "Map") },
                     label = { Text("Map") },
                     selected = selectedBottomNavItem == 1,
                     onClick = { selectedBottomNavItem = 1 }
@@ -147,7 +147,7 @@ fun LoverDiscoverScreen(
                 IconButton(
                     onClick = { /* TODO: Implement filter */ }
                 ) {
-                    Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                    Icon(Icons.Default.Settings, contentDescription = "Filter")
                 }
             }
             
