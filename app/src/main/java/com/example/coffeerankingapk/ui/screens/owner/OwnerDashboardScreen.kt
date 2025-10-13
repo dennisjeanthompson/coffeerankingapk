@@ -189,7 +189,7 @@ fun OwnerDashboardScreen(
                     ActionCard(
                         title = "Analytics",
                         subtitle = "View detailed insights",
-                        icon = Icons.Default.Assessment,
+                        icon = Icons.Default.Star,
                         onClick = onNavigateToAnalytics,
                         modifier = Modifier.weight(1f)
                     )

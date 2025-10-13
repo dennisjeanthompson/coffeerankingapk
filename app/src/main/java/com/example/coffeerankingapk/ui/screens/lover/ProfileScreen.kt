@@ -4,11 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.coffeerankingapk.ui.components.AppCard
-import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.theme.*
 
 @Composable
@@ -47,7 +43,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(SecondaryBrown),
+                            .background(PrimaryBrown),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -156,7 +152,7 @@ fun ProfileScreen(
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
                     
                     ProfileMenuItem(
-                        icon = Icons.Default.FavoriteBorder,
+                        icon = Icons.Default.Favorite,
                         title = "Favorite Cafes",
                         subtitle = "Your saved cafes"
                     )
@@ -186,7 +182,7 @@ fun ProfileScreen(
             AppCard {
                 Column {
                     ProfileMenuItem(
-                        icon = Icons.Default.HelpOutline,
+                        icon = Icons.Default.Info,
                         title = "Help & Support",
                         subtitle = "Get help with the app"
                     )
@@ -214,7 +210,7 @@ fun ProfileScreen(
                 )
             ) {
                 Icon(
-                    Icons.Default.ExitToApp,
+                    Icons.Default.Close,
                     contentDescription = "Logout",
                     modifier = Modifier.size(18.dp)
                 )
@@ -291,7 +287,7 @@ private fun ProfileMenuItem(
             }
             
             Icon(
-                Icons.Default.KeyboardArrowRight,
+                Icons.Default.ArrowForward,
                 contentDescription = "Go",
                 tint = TextMuted,
                 modifier = Modifier.size(20.dp)

@@ -76,7 +76,7 @@ fun LoverMapScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SecondaryBrown,
+                        focusedBorderColor = PrimaryBrown,
                         unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -93,7 +93,7 @@ fun LoverMapScreen(
                         label = { Text("Map View") },
                         selected = showMapView,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = SecondaryBrown,
+                            selectedContainerColor = PrimaryBrown,
                             selectedLabelColor = Color.White
                         )
                     )
@@ -105,7 +105,7 @@ fun LoverMapScreen(
                         label = { Text("List View") },
                         selected = !showMapView,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = SecondaryBrown,
+                            selectedContainerColor = PrimaryBrown,
                             selectedLabelColor = Color.White
                         )
                     )

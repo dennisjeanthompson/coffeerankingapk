@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import com.example.coffeerankingapk.ui.components.AppCard
 import com.example.coffeerankingapk.ui.components.CafeListItem
 import com.example.coffeerankingapk.ui.components.PrimaryButton
@@ -111,14 +112,15 @@ fun LoverDashboardScreen(
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSearchClick() },
                     readOnly = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SecondaryBrown,
+                        focusedBorderColor = PrimaryBrown,
                         unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    onClick = onSearchClick
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         }
@@ -143,7 +145,7 @@ fun LoverDashboardScreen(
                             color = PrimaryBrown
                         )
                         TextButton(onClick = onSearchClick) {
-                            Text("See All", color = SecondaryBrown)
+                            Text("See All", color = PrimaryBrown)
                         }
                     }
                     
@@ -154,8 +156,9 @@ fun LoverDashboardScreen(
                     ) {
                         items(nearbycafes) { cafe ->
                             AppCard(
-                                modifier = Modifier.width(250.dp),
-                                onClick = { onCafeClick(cafe.id) }
+                                modifier = Modifier
+                                    .width(250.dp)
+                                    .clickable { onCafeClick(cafe.id) }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(16.dp)
@@ -275,7 +278,7 @@ fun LoverDashboardScreen(
                             onClick = { },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = SecondaryBrown
+                                contentColor = PrimaryBrown
                             )
                         ) {
                             Text("My Reviews")
