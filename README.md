@@ -1,5 +1,7 @@
 # Coffee Ranking APK
 
+> **Build Status**: ⚠️ The project is fully implemented and ready to build, but requires network access to `dl.google.com` for downloading Android Gradle Plugin and Google dependencies. See [Build Requirements](#build-requirements) section below for details.
+
 A native Android app built with Kotlin and Jetpack Compose that allows cafe owners and coffee lovers to interact through a comprehensive coffee ranking platform.
 
 ## Features
@@ -57,6 +59,21 @@ app/src/main/java/com/example/coffeerankingapk/
 ```
 
 ## Build Instructions
+
+### Build Requirements
+
+**Network Access**: Building this Android project requires access to Google's Maven repositories:
+- `maven.google.com` - Google's public Maven repository
+- `dl.google.com` - Download server for Android Gradle Plugin and Google dependencies
+
+These domains are **essential** for:
+- Downloading Android Gradle Plugin (AGP 7.4.2)
+- Fetching Google Play Services and Firebase SDKs
+- Obtaining AndroidX libraries
+
+If you're building in a restricted network environment, ensure these domains are accessible. The build will fail with "Could not resolve host: dl.google.com" if access is blocked.
+
+**Alternative**: If network access cannot be configured, the APK must be built in an environment with unrestricted access to Google's repositories.
 
 ### Prerequisites
 
@@ -158,10 +175,18 @@ Run tests with:
 
 ### Common Issues:
 
-1. **Build fails with "Could not resolve"**: Run `./gradlew clean` then rebuild
-2. **Maps not loading**: Verify Google Maps API key is correctly added to AndroidManifest.xml
-3. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory
-4. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
+1. **"Could not resolve host: dl.google.com"**: 
+   - **Cause**: Network firewall or DNS blocking Google's Maven repository
+   - **Solution**: Ensure `dl.google.com` and `maven.google.com` are accessible from your network
+   - **Workaround**: Build in a different environment with unrestricted internet access
+
+2. **Build fails with "Could not resolve"**: Run `./gradlew clean` then rebuild
+
+3. **Maps not loading**: Verify Google Maps API key is correctly added to AndroidManifest.xml
+
+4. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory (a stub version is included by default)
+
+5. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
 
 ### Support
 For issues with the build process or setup, check:
