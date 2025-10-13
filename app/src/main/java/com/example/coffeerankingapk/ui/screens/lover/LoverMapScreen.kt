@@ -20,6 +20,12 @@ import com.example.coffeerankingapk.ui.components.CafeListItem
 import com.example.coffeerankingapk.ui.theme.*
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+// MapTiler integration using OSMDroid
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,35 +120,38 @@ fun LoverMapScreen(
         }
         
         if (showMapView) {
-            // Map View Placeholder
+            // MapTiler Map View using OSMDroid
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
-                    .background(Color.Gray.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = "Map",
-                        modifier = Modifier.size(48.dp),
-                        tint = TextMuted
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Interactive Map View",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextMuted
-                    )
-                    Text(
-                        text = "Google Maps integration would go here",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
-                    )
-                }
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        Configuration.getInstance().userAgentValue = context.packageName
+                        
+                        MapView(context).apply {
+                            // Set MapTiler tile source
+                            setTileSource(object : org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase(
+                                "MapTiler",
+                                0, 18, 256, ".png",
+                                arrayOf("https://api.maptiler.com/maps/streets-v2/")
+                            ) {
+                                override fun getTileURLString(pMapTileIndex: Long): String {
+                                    val zoom = org.osmdroid.util.MapTileIndex.getZoom(pMapTileIndex)
+                                    val x = org.osmdroid.util.MapTileIndex.getX(pMapTileIndex)
+                                    val y = org.osmdroid.util.MapTileIndex.getY(pMapTileIndex)
+                                    return "https://api.maptiler.com/maps/streets-v2/$zoom/$x/$y.png?key=301m71fkixa7RnnP0FaL"
+                                }
+                            })
+                            
+                            setMultiTouchControls(true)
+                            controller.setZoom(12.0)
+                            controller.setCenter(GeoPoint(37.7749, -122.4194))
+                        }
+                    }
+                )
             }
             
             // Map controls overlay

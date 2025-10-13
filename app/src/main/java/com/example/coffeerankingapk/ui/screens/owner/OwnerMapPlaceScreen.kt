@@ -25,11 +25,13 @@ import com.example.coffeerankingapk.ui.components.MapPlacePin
 import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.theme.BgCream
 import com.example.coffeerankingapk.ui.theme.PrimaryBrown
-// TODO: Import Google Maps Compose components when implementing
-// import com.google.maps.android.compose.GoogleMap
-// import com.google.maps.android.compose.MapProperties
-// import com.google.maps.android.compose.MapType
-// import com.google.maps.android.compose.MapUiSettings
+// MapTiler integration using OSMDroid
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 @Composable
 fun OwnerMapPlaceScreen(
@@ -62,36 +64,39 @@ fun OwnerMapPlaceScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // TODO: Implement Google Maps Compose
-            // GoogleMap(
-            //     modifier = Modifier.fillMaxSize(),
-            //     properties = MapProperties(mapType = MapType.NORMAL),
-            //     uiSettings = MapUiSettings(zoomControlsEnabled = false),
-            //     onMapClick = { latLng ->
-            //         selectedLocation = Pair(latLng.latitude, latLng.longitude)
-            //     }
-            // ) {
-            //     selectedLocation?.let { location ->
-            //         Marker(
-            //             state = MarkerState(position = LatLng(location.first, location.second)),
-            //             title = "Your Cafe Location"
-            //         )
-            //     }
-            // }
-            
-            // Placeholder for map (remove when implementing real Google Maps)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Google Maps will be displayed here\n\nTODO: Add Google Maps API key to AndroidManifest.xml",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+            // MapTiler Map using OSMDroid
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { context ->
+                    // Configure OSMDroid
+                    Configuration.getInstance().userAgentValue = context.packageName
+                    
+                    MapView(context).apply {
+                        // Set MapTiler tile source
+                        setTileSource(object : org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase(
+                            "MapTiler",
+                            0, 18, 256, ".png",
+                            arrayOf("https://api.maptiler.com/maps/streets-v2/")
+                        ) {
+                            override fun getTileURLString(pMapTileIndex: Long): String {
+                                val zoom = org.osmdroid.util.MapTileIndex.getZoom(pMapTileIndex)
+                                val x = org.osmdroid.util.MapTileIndex.getX(pMapTileIndex)
+                                val y = org.osmdroid.util.MapTileIndex.getY(pMapTileIndex)
+                                return "https://api.maptiler.com/maps/streets-v2/$zoom/$x/$y.png?key=301m71fkixa7RnnP0FaL"
+                            }
+                        })
+                        
+                        setMultiTouchControls(true)
+                        controller.setZoom(12.0)
+                        controller.setCenter(GeoPoint(37.7749, -122.4194)) // San Francisco
+                        
+                        // Add click listener
+                        setOnClickListener { _ ->
+                            // Handle map clicks
+                        }
+                    }
+                }
+            )
             
             // Instruction overlay
             Box(
