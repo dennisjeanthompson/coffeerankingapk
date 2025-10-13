@@ -100,3 +100,29 @@ fun CafeListItem(
         }
     }
 }
+
+// Overloaded version that takes a Cafe object and supports distance
+@Composable
+fun CafeListItem(
+    cafe: com.example.coffeerankingapk.data.Cafe,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    showDistance: Boolean = false,
+    isFavorite: Boolean = false,
+    onFavoriteClick: () -> Unit = {}
+) {
+    CafeListItem(
+        name = cafe.name,
+        description = if (showDistance) {
+            "${cafe.description} • ~${(cafe.rating * 2 + 3).toInt()} min"
+        } else {
+            cafe.description
+        },
+        rating = cafe.rating,
+        imageUrl = cafe.imageUrl,
+        isFavorite = isFavorite,
+        onItemClick = onClick,
+        onFavoriteClick = onFavoriteClick,
+        modifier = modifier
+    )
+}

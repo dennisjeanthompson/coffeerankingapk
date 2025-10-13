@@ -13,6 +13,7 @@ import com.example.coffeerankingapk.ui.screens.owner.OwnerDashboardScreen
 import com.example.coffeerankingapk.ui.screens.owner.OwnerMapPlaceScreen
 import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
+import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
 
 @Composable
@@ -97,39 +98,31 @@ fun NavGraph(
             }
         }
         
-        // Lover flow - nested graph
-        navigation(
-            startDestination = "lover_discover",
-            route = "lover"
-        ) {
-            composable("lover_discover") {
-                LoverDiscoverScreen(
-                    onCafeClick = { cafeId ->
-                        navController.navigate("cafe_detail/$cafeId")
-                    },
-                    onNavigateToRewards = {
-                        navController.navigate("lover_rewards")
+        // Lover flow - main screen with bottom navigation
+        composable("lover") {
+            LoverMainScreen(
+                onCafeClick = { cafeId ->
+                    navController.navigate("cafe_detail/$cafeId")
+                },
+                onNavigateToRewards = {
+                    // Rewards is handled within LoverMainScreen
+                },
+                onLogout = {
+                    navController.navigate("auth") {
+                        popUpTo(0) { inclusive = true }
                     }
-                )
-            }
-            
-            composable("cafe_detail/{cafeId}") { backStackEntry ->
-                val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
-                CafeDetailScreen(
-                    cafeId = cafeId,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            
-            composable("lover_rewards") {
-                RewardsScreen(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
+                }
+            )
+        }
+        
+        composable("cafe_detail/{cafeId}") { backStackEntry ->
+            val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
+            CafeDetailScreen(
+                cafeId = cafeId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

@@ -15,12 +15,12 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.BottomAppBar
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItem
+
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -79,48 +79,12 @@ fun LoverDiscoverScreen(
     
     var favoriteCafes by remember { mutableStateOf(setOf<String>()) }
     
-    Scaffold(
-        containerColor = BgCream,
-        bottomBar = {
-            BottomAppBar(
-                containerColor = androidx.compose.ui.graphics.Color.White
-            ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    selected = selectedBottomNavItem == 0,
-                    onClick = { selectedBottomNavItem = 0 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Map") },
-                    label = { Text("Map") },
-                    selected = selectedBottomNavItem == 1,
-                    onClick = { selectedBottomNavItem = 1 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Rewards") },
-                    label = { Text("Rewards") },
-                    selected = selectedBottomNavItem == 2,
-                    onClick = { 
-                        selectedBottomNavItem = 2
-                        onNavigateToRewards()
-                    }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") },
-                    selected = selectedBottomNavItem == 3,
-                    onClick = { selectedBottomNavItem = 3 }
-                )
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgCream)
+            .padding(16.dp)
+    ) {
             // Header
             Text(
                 text = "Discover Cafes",
