@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -168,6 +169,78 @@ fun ProfileScreen(
             }
         }
         
+        // Saved Cafes (matching mockup)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Saved Cafes",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBrown
+                )
+                TextButton(onClick = { /* View all */ }) {
+                    Text("View All", color = PrimaryBrown)
+                }
+            }
+        }
+        
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                listOf(
+                    SavedCafeItem("Blue Bottle Coffee", 4.8f),
+                    SavedCafeItem("Stumptown Coffee", 4.7f),
+                    SavedCafeItem("Intelligentsia", 4.6f)
+                ).forEach { cafe ->
+                    SavedCafeCard(
+                        cafe = cafe,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        
+        // Notifications (matching mockup)
+        item {
+            Text(
+                text = "Notifications",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBrown
+            )
+        }
+        
+        item {
+            AppCard {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    NotificationToggleItem(
+                        title = "Push Notifications",
+                        subtitle = "Get notified about new cafes and reviews",
+                        isEnabled = true,
+                        onToggle = { /* Handle toggle */ }
+                    )
+                    
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+                    
+                    NotificationToggleItem(
+                        title = "Email Updates",
+                        subtitle = "Weekly digest of your activity",
+                        isEnabled = false,
+                        onToggle = { /* Handle toggle */ }
+                    )
+                }
+            }
+        }
+        
         // Support
         item {
             Text(
@@ -295,3 +368,100 @@ private fun ProfileMenuItem(
         }
     }
 }
+
+@Composable
+private fun SavedCafeCard(
+    cafe: SavedCafeItem,
+    modifier: Modifier = Modifier
+) {
+    AppCard(
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(
+                        PrimaryBrown.copy(alpha = 0.1f),
+                        RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "☕",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+            
+            Text(
+                text = cafe.name,
+                style = MaterialTheme.typography.bodySmall,
+                color = PrimaryBrown,
+                maxLines = 2
+            )
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "⭐",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "${cafe.rating}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationToggleItem(
+    title: String,
+    subtitle: String,
+    isEnabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryBrown
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted
+            )
+        }
+        
+        Switch(
+            checked = isEnabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = PrimaryBrown,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.Gray.copy(alpha = 0.3f)
+            )
+        )
+    }
+}
+
+private data class SavedCafeItem(
+    val name: String,
+    val rating: Float
+)

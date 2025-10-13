@@ -6,14 +6,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,11 +50,11 @@ fun LoverDashboardScreen(
             .fillMaxSize()
             .background(BgCream)
     ) {
-        // Header with greeting and location
+        // Enhanced Header with user profile card
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 2.dp
+            color = PrimaryBrown,
+            shadowElevation = 4.dp
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -57,27 +62,79 @@ fun LoverDashboardScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Good morning!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextMuted
-                        )
-                        Text(
-                            text = "Coffee Lover",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBrown
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Profile picture placeholder
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(24.dp),
+                                tint = Color.White
+                            )
+                        }
+                        
+                        Column {
+                            Text(
+                                text = "Sarah Chen",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Coffee Enthusiast",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
                     }
                     
                     IconButton(onClick = onNotificationClick) {
                         Icon(
                             Icons.Default.Notifications,
                             contentDescription = "Notifications",
-                            tint = PrimaryBrown
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // User stats row
+                AppCard(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem(
+                            title = "Your Rank",
+                            value = "#127",
+                            color = PrimaryBrown
+                        )
+                        Divider(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(1.dp),
+                            color = Color.Gray.copy(alpha = 0.3f)
+                        )
+                        StatItem(
+                            title = "Points",
+                            value = "2,847",
+                            color = Success
                         )
                     }
                 }
@@ -130,126 +187,165 @@ fun LoverDashboardScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Nearby Cafes Section
+            // Recent Activity Section (matching mockup)
             item {
                 Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Nearby Cafes",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBrown
-                        )
-                        TextButton(onClick = onSearchClick) {
-                            Text("See All", color = PrimaryBrown)
+                    Text(
+                        text = "Recent Activity",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBrown
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    AppCard {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ActivityItem(
+                                icon = Icons.Default.Star,
+                                title = "Rated Ethiopian Yirgacheffe",
+                                subtitle = "⭐⭐⭐⭐⭐ 2h ago",
+                                backgroundColor = Success.copy(alpha = 0.1f)
+                            )
+                            
+                            Divider(color = Color.Gray.copy(alpha = 0.2f))
+                            
+                            ActivityItem(
+                                icon = Icons.Default.Star,
+                                title = "Earned 'Coffee Connoisseur' Badge",
+                                subtitle = "🏆 5h ago",
+                                backgroundColor = Success.copy(alpha = 0.1f)
+                            )
+                            
+                            Divider(color = Color.Gray.copy(alpha = 0.2f))
+                            
+                            ActivityItem(
+                                icon = Icons.Default.Favorite,
+                                title = "Added Blue Mountain to Favorites",
+                                subtitle = "❤️ 1d ago",
+                                backgroundColor = Danger.copy(alpha = 0.1f)
+                            )
                         }
                     }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { /* View all activity */ }) {
+                            Text("View All", color = PrimaryBrown)
+                        }
+                    }
+                }
+            }
+            
+            // Your Top Rated Section (matching mockup)
+            item {
+                Column {
+                    Text(
+                        text = "Your Top Rated",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBrown
+                    )
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(nearbycafes) { cafe ->
+                        items(listOf(
+                            TopRatedItem("Ethiopian Yirgacheffe", 5.0f),
+                            TopRatedItem("Blue Mountain", 4.8f), 
+                            TopRatedItem("Colon Supreme", 4.5f)
+                        )) { item ->
                             AppCard(
-                                modifier = Modifier
-                                    .width(250.dp)
-                                    .clickable { onCafeClick(cafe.id) }
+                                modifier = Modifier.width(120.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp)
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = cafe.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = PrimaryBrown
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    
-                                    Text(
-                                        text = cafe.address,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextMuted
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Box(
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .background(
+                                                PrimaryBrown.copy(alpha = 0.1f),
+                                                RoundedCornerShape(8.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        RatingStars(
-                                            rating = cafe.rating,
-                                            modifier = Modifier,
-    
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "${cafe.rating}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextMuted
+                                            text = "☕",
+                                            style = MaterialTheme.typography.headlineMedium
                                         )
                                     }
                                     
                                     Spacer(modifier = Modifier.height(8.dp))
                                     
                                     Text(
-                                        text = "~${(cafe.rating * 2 + 3).toInt()} min",
+                                        text = item.name,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Success
+                                        color = PrimaryBrown,
+                                        maxLines = 2
+                                    )
+                                    
+                                    RatingStars(
+                                        rating = item.rating,
+                                        showNumeric = false
                                     )
                                 }
                             }
                         }
                     }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { /* See all */ }) {
+                            Text("See All", color = PrimaryBrown)
+                        }
+                    }
                 }
             }
             
-            // Top Rated Section
+            // Recent Achievements (matching mockup)
             item {
                 Column {
                     Text(
-                        text = "Top Rated",
+                        text = "Recent Achievements",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBrown
                     )
                     
                     Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-            
-            items(topRatedCafes) { cafe ->
-                CafeListItem(
-                    cafe = cafe,
-                    onClick = { onCafeClick(cafe.id) }
-                )
-            }
-            
-            // Recently Visited Section
-            item {
-                Column {
-                    Text(
-                        text = "Recently Visited",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        AchievementBadge(
+                            title = "Coffee Master",
+                            icon = "☕",
+                            modifier = Modifier.weight(1f)
+                        )
+                        AchievementBadge(
+                            title = "Savings Warrior", 
+                            icon = "💰",
+                            modifier = Modifier.weight(1f)
+                        )
+                        AchievementBadge(
+                            title = "Streak Hero",
+                            icon = "🔥",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-            }
-            
-            items(recentlyVisited) { cafe ->
-                CafeListItem(
-                    cafe = cafe,
-                    onClick = { onCafeClick(cafe.id) }
-                )
             }
             
             // Quick Actions
@@ -289,3 +385,113 @@ fun LoverDashboardScreen(
         }
     }
 }
+
+@Composable
+private fun StatItem(
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextMuted
+        )
+    }
+}
+
+@Composable
+private fun ActivityItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    backgroundColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(backgroundColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = PrimaryBrown,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryBrown
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted
+            )
+        }
+    }
+}
+
+@Composable
+private fun AchievementBadge(
+    title: String,
+    icon: String,
+    modifier: Modifier = Modifier
+) {
+    AppCard(
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(PrimaryBrown, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = icon,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = PrimaryBrown,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+private data class TopRatedItem(
+    val name: String,
+    val rating: Float
+)

@@ -28,28 +28,22 @@ fun LoverMainScreen(
                     onClick = { selectedTab = 0 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Discover") },
-                    label = { Text("Discover") },
+                    icon = { Icon(Icons.Default.Place, contentDescription = "Map") },
+                    label = { Text("Map") },
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Map") },
-                    label = { Text("Map") },
+                    icon = { Icon(Icons.Default.Star, contentDescription = "Rewards") },
+                    label = { Text("Rewards") },
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Rewards") },
-                    label = { Text("Rewards") },
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 }
-                )
-                NavigationBarItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                     label = { Text("Profile") },
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 }
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 }
                 )
             }
         }
@@ -59,17 +53,13 @@ fun LoverMainScreen(
                 onCafeClick = onCafeClick,
                 onSearchClick = { selectedTab = 1 }
             )
-            1 -> LoverDiscoverScreen(
-                onCafeClick = onCafeClick,
-                onNavigateToRewards = onNavigateToRewards
-            )
-            2 -> LoverMapScreen(
+            1 -> LoverMapScreen(
                 onCafeClick = onCafeClick
             )
-            3 -> RewardsScreen(
+            2 -> RewardsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
-            4 -> ProfileScreen(
+            3 -> ProfileScreen(
                 onLogout = onLogout
             )
         }

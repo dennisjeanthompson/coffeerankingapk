@@ -7,13 +7,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.example.coffeerankingapk.ui.screens.AuthScreen
 import com.example.coffeerankingapk.ui.screens.RoleSelectScreen
-import com.example.coffeerankingapk.ui.screens.owner.OwnerAnalyticsScreen
-import com.example.coffeerankingapk.ui.screens.owner.OwnerCouponsScreen
-import com.example.coffeerankingapk.ui.screens.owner.OwnerDashboardScreen
-import com.example.coffeerankingapk.ui.screens.owner.OwnerMapPlaceScreen
+import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
+import com.example.coffeerankingapk.ui.screens.lover.RateScreen
 import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
 
 @Composable
@@ -51,51 +49,15 @@ fun NavGraph(
             )
         }
         
-        // Owner flow - nested graph
-        navigation(
-            startDestination = "owner_dashboard",
-            route = "owner"
-        ) {
-            composable("owner_dashboard") {
-                OwnerDashboardScreen(
-                    onNavigateToAnalytics = {
-                        navController.navigate("owner_analytics")
-                    },
-                    onNavigateToMapPlace = {
-                        navController.navigate("owner_map_place")
-                    },
-                    onNavigateToCoupons = {
-                        navController.navigate("owner_coupons")
+        // Owner flow - main screen with bottom navigation
+        composable("owner") {
+            OwnerMainScreen(
+                onLogout = {
+                    navController.navigate("auth") {
+                        popUpTo(0) { inclusive = true }
                     }
-                )
-            }
-            
-            composable("owner_analytics") {
-                OwnerAnalyticsScreen(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            
-            composable("owner_map_place") {
-                OwnerMapPlaceScreen(
-                    onLocationConfirmed = {
-                        navController.popBackStack()
-                    },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-            
-            composable("owner_coupons") {
-                OwnerCouponsScreen(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
+                }
+            )
         }
         
         // Lover flow - main screen with bottom navigation
@@ -118,6 +80,19 @@ fun NavGraph(
         composable("cafe_detail/{cafeId}") { backStackEntry ->
             val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
             CafeDetailScreen(
+                cafeId = cafeId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToRate = {
+                    navController.navigate("rate_cafe/$cafeId")
+                }
+            )
+        }
+        
+        composable("rate_cafe/{cafeId}") { backStackEntry ->
+            val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
+            RateScreen(
                 cafeId = cafeId,
                 onNavigateBack = {
                     navController.popBackStack()

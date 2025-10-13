@@ -50,7 +50,8 @@ import com.example.coffeerankingapk.ui.theme.TextMuted
 @Composable
 fun CafeDetailScreen(
     cafeId: String,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToRate: () -> Unit = {}
 ) {
     var showRatingDialog by remember { mutableStateOf(false) }
     
@@ -159,7 +160,7 @@ fun CafeDetailScreen(
                 ) {
                     PrimaryButton(
                         text = "Rate",
-                        onClick = { showRatingDialog = true },
+                        onClick = onNavigateToRate,
                         modifier = Modifier.weight(1f)
                     )
                     
