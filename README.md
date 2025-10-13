@@ -7,7 +7,7 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 ### For Cafe Owners:
 - **Dashboard**: View KPI metrics (total reviews, average rating, monthly visits)
 - **Analytics**: Track reviews over time with interactive charts
-- **Location Management**: Place cafe on Google Maps
+- **Location Management**: Place cafe on interactive MapTiler maps
 - **Coupon Management**: Create and manage promotional coupons
 - **Business Settings**: Manage cafe information and operating hours
 
@@ -24,7 +24,7 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 - **UI Framework**: Jetpack Compose with Material 3
 - **Architecture**: MVVM with Hilt for Dependency Injection
 - **Navigation**: Jetpack Navigation Compose with nested graphs
-- **Maps**: Google Maps Compose (Maps SDK)
+- **Maps**: MapTiler with OSMDroid rendering
 - **Charts**: Custom Compose charts for analytics
 - **Authentication**: Firebase Auth (configured for stubs)
 - **Database**: Firebase Firestore (configured for stubs)
@@ -122,14 +122,19 @@ app/src/main/java/com/example/coffeerankingapk/
 ## Configuration Notes
 
 ### Current State
-The app is configured with scaffolding and mock data. Key TODOs for production:
+The app is configured with interactive maps and mock data. Key features implemented:
 
-1. **Google Maps**: Uncomment Maps Compose code in `OwnerMapPlaceScreen.kt` after adding API key
-2. **Firebase Auth**: Replace mock login with real Firebase Auth in `AuthScreen.kt`
-3. **Firebase Firestore**: Implement real data repositories replacing mock JSON data
-4. **Image URLs**: Replace placeholder URLs with real cafe images
-5. **Date Pickers**: Complete coupon date picker implementation
-6. **Push Notifications**: Add FCM for rewards and updates
+✅ **MapTiler Integration**: Interactive maps with MapTiler tiles (API key: 301m71fkixa7RnnP0FaL)
+✅ **Complete Navigation**: Both owner and lover flows with bottom navigation
+✅ **Enhanced UI**: Dashboard, rating, rewards, profile screens matching mockups
+
+Key TODOs for production:
+1. **Firebase Auth**: Replace mock login with real Firebase Auth in `AuthScreen.kt`
+2. **Firebase Firestore**: Implement real data repositories replacing mock JSON data
+3. **Image URLs**: Replace placeholder URLs with real cafe images
+4. **Date Pickers**: Complete coupon date picker implementation
+5. **Push Notifications**: Add FCM for rewards and updates
+6. **Map Markers**: Add cafe markers and location selection feedback
 
 ### Mock Data
 The app includes sample data in `data/mock/`:
@@ -143,7 +148,7 @@ All dependencies are configured in `app/build.gradle`:
 - Hilt for dependency injection
 - Navigation Compose for routing
 - Firebase BOM for backend services
-- Google Maps Compose for location features
+- OSMDroid with MapTiler tiles for location features
 - Coil for image loading
 
 ## Testing
@@ -159,7 +164,7 @@ Run tests with:
 ### Common Issues:
 
 1. **Build fails with "Could not resolve"**: Run `./gradlew clean` then rebuild
-2. **Maps not loading**: Verify Google Maps API key is correctly added to AndroidManifest.xml
+2. **Maps not loading**: Verify MapTiler API key is correctly configured in AndroidManifest.xml
 3. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory
 4. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
 
