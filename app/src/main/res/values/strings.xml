@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Coffee Ranking</string>
+    
+    <!-- Mapbox Access Token - Replace with your actual token -->
+    <string name="mapbox_access_token" translatable="false">sk.eyJ1IjoiZGVuMTMxenoiLCJhIjoiY21nczlsb2ZiMDAyODJrc2N3Z2VxMWJoYyJ9.avu99ci1zEUF9dTbjH7yiw</string>
+    
     <string name="place_your_cafe">Place your cafe</string>
     <string name="confirm_location">Confirm location</string>
     <string name="create_coupon">Create coupon</string>

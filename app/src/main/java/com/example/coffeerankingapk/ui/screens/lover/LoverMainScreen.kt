@@ -28,7 +28,7 @@ fun LoverMainScreen(
                     onClick = { selectedTab = 0 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Map") },
+                    icon = { Icon(Icons.Default.LocationOn, contentDescription = "Map") },
                     label = { Text("Map") },
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 }
@@ -51,10 +51,10 @@ fun LoverMainScreen(
         when (selectedTab) {
             0 -> LoverDashboardScreen(
                 onCafeClick = onCafeClick,
-                onSearchClick = { selectedTab = 1 }
+                onSearchClick = { /* Future: implement search */ }
             )
-            1 -> LoverMapScreen(
-                onCafeClick = onCafeClick
+            1 -> MapScreen(
+                onNavigateToCafe = onCafeClick
             )
             2 -> RewardsScreen(
                 onNavigateBack = { selectedTab = 0 }

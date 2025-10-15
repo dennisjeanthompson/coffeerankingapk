@@ -170,12 +170,13 @@ fun LoverDashboardScreen(
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSearchClick() },
+                        .fillMaxWidth(),
                     readOnly = true,
+                    enabled = false,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBrown,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                        disabledBorderColor = Color.Gray.copy(alpha = 0.3f)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -360,25 +361,14 @@ fun LoverDashboardScreen(
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    Row(
+                    OutlinedButton(
+                        onClick = { },
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        PrimaryButton(
-                            text = "Find Cafes",
-                            onClick = onSearchClick,
-                            modifier = Modifier.weight(1f)
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryBrown
                         )
-                        
-                        OutlinedButton(
-                            onClick = { },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = PrimaryBrown
-                            )
-                        ) {
-                            Text("My Reviews")
-                        }
+                    ) {
+                        Text("My Reviews")
                     }
                 }
             }

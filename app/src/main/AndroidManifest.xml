@@ -2,10 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Internet permission for Firebase and Maps -->
+    <!-- Internet permission for Firebase -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Location permissions for Mapbox -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Post notifications for navigation -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".CoffeeRankingApplication"
@@ -19,10 +25,10 @@
         android:theme="@style/Theme.CoffeeRankingAPK"
         tools:targetApi="31">
 
-        <!-- MapTiler API key -->
+        <!-- Mapbox Access Token -->
         <meta-data
-            android:name="maptiler.api.key"
-            android:value="301m71fkixa7RnnP0FaL" />
+            android:name="MAPBOX_ACCESS_TOKEN"
+            android:value="@string/mapbox_access_token" />
 
         <activity
             android:name=".MainActivity"

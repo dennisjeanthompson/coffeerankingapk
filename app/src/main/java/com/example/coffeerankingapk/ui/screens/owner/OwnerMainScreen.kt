@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun OwnerMainScreen(
     onNavigateToAnalytics: () -> Unit = {},
-    onNavigateToMapPlace: () -> Unit = {},
     onNavigateToCoupons: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -35,22 +34,16 @@ fun OwnerMainScreen(
                     onClick = { selectedTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.LocationOn, contentDescription = "Location") },
-                    label = { Text("Location") },
+                    icon = { Icon(Icons.Default.Star, contentDescription = "Coupons") },
+                    label = { Text("Coupons") },
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Coupons") },
-                    label = { Text("Coupons") },
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 }
-                )
-                NavigationBarItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                     label = { Text("Profile") },
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 }
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 }
                 )
             }
         }
@@ -58,20 +51,15 @@ fun OwnerMainScreen(
         when (selectedTab) {
             0 -> OwnerDashboardScreen(
                 onNavigateToAnalytics = { selectedTab = 1 },
-                onNavigateToMapPlace = { selectedTab = 2 },
-                onNavigateToCoupons = { selectedTab = 3 }
+                onNavigateToCoupons = { selectedTab = 2 }
             )
             1 -> OwnerAnalyticsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
-            2 -> OwnerMapPlaceScreen(
-                onLocationConfirmed = { selectedTab = 0 },
+            2 -> OwnerCouponsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
-            3 -> OwnerCouponsScreen(
-                onNavigateBack = { selectedTab = 0 }
-            )
-            4 -> OwnerProfileScreen(
+            3 -> OwnerProfileScreen(
                 onLogout = onLogout
             )
         }

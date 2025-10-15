@@ -7,12 +7,13 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 ### For Cafe Owners:
 - **Dashboard**: View KPI metrics (total reviews, average rating, monthly visits)
 - **Analytics**: Track reviews over time with interactive charts
-- **Location Management**: Place cafe on interactive MapTiler maps
 - **Coupon Management**: Create and manage promotional coupons
 - **Business Settings**: Manage cafe information and operating hours
 
 ### For Coffee Lovers:
 - **Discover**: Browse and search local cafes
+- **Interactive Map**: View cafes on Mapbox map with search and routing
+- **Directions**: Get turn-by-turn directions to cafes
 - **Reviews**: Rate and review cafes with 5-star system
 - **Rewards**: Earn loyalty points and redeem coupons
 - **Favorites**: Save and share favorite cafes
@@ -24,7 +25,8 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 - **UI Framework**: Jetpack Compose with Material 3
 - **Architecture**: MVVM with Hilt for Dependency Injection
 - **Navigation**: Jetpack Navigation Compose with nested graphs
-- **Maps**: MapTiler with OSMDroid rendering
+- **Maps**: Mapbox Maps SDK with Search & Navigation
+- **Location**: Google Play Services Location
 - **Charts**: Custom Compose charts for analytics
 - **Authentication**: Firebase Auth (configured for stubs)
 - **Database**: Firebase Firestore (configured for stubs)
@@ -74,17 +76,6 @@ app/src/main/java/com/example/coffeerankingapk/
 
 2. **API Keys Setup** (Required for full functionality):
 
-   **Google Maps API Key**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Enable Maps SDK for Android
-   - Create an API key
-   - Add your API key to `app/src/main/AndroidManifest.xml`:
-   ```xml
-   <meta-data
-       android:name="com.google.android.geo.API_KEY"
-       android:value="YOUR_GOOGLE_MAPS_API_KEY_HERE" />
-   ```
-
    **Firebase Setup**:
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project
@@ -92,6 +83,17 @@ app/src/main/java/com/example/coffeerankingapk/
    - Download `google-services.json`
    - Place it in `app/` directory
    - Enable Authentication and Firestore in Firebase console
+
+   **Mapbox Setup** (Required for map functionality):
+   - Go to [Mapbox Account](https://account.mapbox.com/)
+   - Sign up or log in to your account
+   - Navigate to "Access Tokens" page
+   - Copy your **default public token** (starts with `pk.`)
+   - Create a **secret token** with `DOWNLOADS:READ` scope for SDK downloads
+   - In `gradle.properties`, replace `YOUR_MAPBOX_SECRET_TOKEN_HERE` with your secret token
+   - In your app code, add your public token where needed (see Configuration section)
+
+   **Important**: Never commit your actual tokens to version control. Use environment variables or secure key management for production.
 
 3. **Build the APK**:
    ```bash
@@ -121,20 +123,56 @@ app/src/main/java/com/example/coffeerankingapk/
 
 ## Configuration Notes
 
-### Current State
-The app is configured with interactive maps and mock data. Key features implemented:
+### Mapbox Public Token Configuration
 
-✅ **MapTiler Integration**: Interactive maps with MapTiler tiles (API key: 301m71fkixa7RnnP0FaL)
+To enable the Mapbox map features, you need to add your public access token:
+
+1. **Create a strings resource** (if not exists):
+   Create or edit `app/src/main/res/values/strings.xml`:
+   ```xml
+   <resources>
+       <string name="mapbox_access_token">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
+   </resources>
+   ```
+
+2. **Add to AndroidManifest.xml**:
+   ```xml
+   <application>
+       <meta-data
+           android:name="MAPBOX_ACCESS_TOKEN"
+           android:value="@string/mapbox_access_token" />
+   </application>
+   ```
+
+### Map Features
+
+The integrated Mapbox map includes:
+
+- **📍 Cafe Markers**: All cafes displayed with markers on the map
+- **🔍 Search Bar**: Search cafes by name, address, or description
+- **📱 User Location**: Shows your current location (requires location permission)
+- **🧭 Directions**: Calculate distance and duration to any cafe
+- **🗺️ Interactive Map**: Zoom, pan, and tap markers for cafe details
+- **🎯 Navigation**: Tap "Directions" to get routing information
+- **📊 Route Info**: Distance and estimated walking/driving time
+
+### Current State
+The app is configured with mock data and complete navigation flows. Key features implemented:
+
 ✅ **Complete Navigation**: Both owner and lover flows with bottom navigation
 ✅ **Enhanced UI**: Dashboard, rating, rewards, profile screens matching mockups
+✅ **Analytics Charts**: Interactive charts for owner analytics
+✅ **Mapbox Integration**: Interactive maps with search, markers, and routing
+✅ **Location Services**: Real-time user location tracking
 
 Key TODOs for production:
 1. **Firebase Auth**: Replace mock login with real Firebase Auth in `AuthScreen.kt`
 2. **Firebase Firestore**: Implement real data repositories replacing mock JSON data
-3. **Image URLs**: Replace placeholder URLs with real cafe images
-4. **Date Pickers**: Complete coupon date picker implementation
-5. **Push Notifications**: Add FCM for rewards and updates
-6. **Map Markers**: Add cafe markers and location selection feedback
+3. **Mapbox Tokens**: Add your actual Mapbox tokens (public and secret)
+4. **Mapbox Directions API**: Integrate real routing API for accurate turn-by-turn navigation
+5. **Image URLs**: Replace placeholder URLs with real cafe images
+6. **Date Pickers**: Complete coupon date picker implementation
+7. **Push Notifications**: Add FCM for rewards and updates
 
 ### Mock Data
 The app includes sample data in `data/mock/`:
@@ -147,8 +185,11 @@ All dependencies are configured in `app/build.gradle`:
 - Compose BOM for UI consistency
 - Hilt for dependency injection
 - Navigation Compose for routing
+- Mapbox Maps SDK for interactive maps
+- Mapbox Search SDK for location search
+- Mapbox Navigation SDK for routing
+- Google Play Services Location for user location
 - Firebase BOM for backend services
-- OSMDroid with MapTiler tiles for location features
 - Coil for image loading
 
 ## Testing
@@ -164,9 +205,11 @@ Run tests with:
 ### Common Issues:
 
 1. **Build fails with "Could not resolve"**: Run `./gradlew clean` then rebuild
-2. **Maps not loading**: Verify MapTiler API key is correctly configured in AndroidManifest.xml
-3. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory
-4. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
+2. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory
+3. **Mapbox dependency errors**: Ensure `MAPBOX_DOWNLOADS_TOKEN` is set in `gradle.properties`
+4. **Map not showing**: Check that Mapbox public token is configured in resources
+5. **Location not working**: Grant location permissions in app settings
+6. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
 
 ### Support
 For issues with the build process or setup, check:

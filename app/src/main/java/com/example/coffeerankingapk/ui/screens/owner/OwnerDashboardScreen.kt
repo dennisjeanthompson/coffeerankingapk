@@ -22,7 +22,6 @@ import com.example.coffeerankingapk.ui.theme.*
 @Composable
 fun OwnerDashboardScreen(
     onNavigateToAnalytics: () -> Unit,
-    onNavigateToMapPlace: () -> Unit,
     onNavigateToCoupons: () -> Unit
 ) {
     LazyColumn(
@@ -195,23 +194,13 @@ fun OwnerDashboardScreen(
                     )
                     
                     ActionCard(
-                        title = "Location",
-                        subtitle = "Update cafe location",
-                        icon = Icons.Default.LocationOn,
-                        onClick = onNavigateToMapPlace,
+                        title = "Manage Coupons",
+                        subtitle = "Create promotional offers",
+                        icon = Icons.Default.Settings,
+                        onClick = onNavigateToCoupons,
                         modifier = Modifier.weight(1f)
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                ActionCard(
-                    title = "Manage Coupons",
-                    subtitle = "Create and manage promotional offers",
-                                                icon = Icons.Default.Settings,
-                    onClick = onNavigateToCoupons,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     }

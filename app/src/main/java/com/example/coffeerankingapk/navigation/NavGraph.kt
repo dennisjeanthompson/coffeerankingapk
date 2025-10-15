@@ -11,6 +11,7 @@ import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
+import com.example.coffeerankingapk.ui.screens.lover.MapScreen
 import com.example.coffeerankingapk.ui.screens.lover.RateScreen
 import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
 
@@ -96,6 +97,14 @@ fun NavGraph(
                 cafeId = cafeId,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        composable("map") {
+            MapScreen(
+                onNavigateToCafe = { cafeId ->
+                    navController.navigate("cafe_detail/$cafeId")
                 }
             )
         }

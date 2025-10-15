@@ -54,6 +54,7 @@ dependencies {
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
     
     // Activity Compose
     implementation 'androidx.activity:activity-compose:1.8.0'
@@ -65,16 +66,16 @@ dependencies {
     // Navigation Compose
     implementation 'androidx.navigation:navigation-compose:2.7.4'
     
-
+    // Mapbox Maps SDK - Core only to reduce build complexity
+    implementation('com.mapbox.maps:android:10.16.5')
+    
+    // Location services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
     
     // Firebase BOM
     implementation platform('com.google.firebase:firebase-bom:32.5.0')
     implementation 'com.google.firebase:firebase-auth-ktx'
     implementation 'com.google.firebase:firebase-firestore-ktx'
-    
-    // MapTiler SDK (using OpenStreetMap renderer for now)
-    implementation 'org.osmdroid:osmdroid-android:6.1.16'
-    implementation 'com.google.android.gms:play-services-location:21.0.1'
     
     // Charts
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
