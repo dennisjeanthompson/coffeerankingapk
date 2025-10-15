@@ -32,9 +32,20 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.mapbox.geojson.Point
+import com.mapbox.geojson.LineString
+import com.mapbox.geojson.Feature
+import com.mapbox.geojson.FeatureCollection
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
+import com.mapbox.maps.extension.style.layers.addLayer
+import com.mapbox.maps.extension.style.layers.generated.lineLayer
+import com.mapbox.maps.extension.style.layers.generated.symbolLayer
+import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
+import com.mapbox.maps.extension.style.layers.properties.generated.TextAnchor
+import com.mapbox.maps.extension.style.sources.addSource
+import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
 import kotlinx.coroutines.tasks.await
@@ -58,6 +69,7 @@ fun MapScreen(
     var showRouteDetails by remember { mutableStateOf(false) }
     var currentRoute by remember { mutableStateOf<MapRoute?>(null) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
+    var isShowingRoute by remember { mutableStateOf(false) }
     
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -228,6 +240,46 @@ fun MapScreen(
             }
         }
 
+        // Route Active Indicator
+        if (isShowingRoute && currentRoute != null) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 90.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Navigation,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Route Active",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "${currentRoute!!.distance} • ${currentRoute!!.duration}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
         // Floating Action Buttons
         Column(
             modifier = Modifier
@@ -303,7 +355,17 @@ fun MapScreen(
                                 )
                             }
                             
-                            IconButton(onClick = { selectedCafe = null }) {
+                            IconButton(onClick = { 
+                                selectedCafe = null
+                                // Clear route when closing bottom sheet
+                                if (isShowingRoute) {
+                                    mapView?.getMapboxMap()?.getStyle { style ->
+                                        clearRouteFromMap(style)
+                                    }
+                                    currentRoute = null
+                                    isShowingRoute = false
+                                }
+                            }) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Close"
@@ -319,12 +381,33 @@ fun MapScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    if (userLocation != null) {
+                                    if (userLocation != null && selectedCafe != null) {
                                         val route = calculateRoute(
                                             userLocation!!,
                                             selectedCafe!!
                                         )
                                         currentRoute = route
+                                        
+                                        // Draw route on map
+                                        mapView?.getMapboxMap()?.getStyle { style ->
+                                            drawRouteOnMap(
+                                                style = style,
+                                                route = route,
+                                                startPoint = Point.fromLngLat(
+                                                    userLocation!!.longitude,
+                                                    userLocation!!.latitude
+                                                ),
+                                                endPoint = Point.fromLngLat(
+                                                    selectedCafe!!.longitude,
+                                                    selectedCafe!!.latitude
+                                                )
+                                            )
+                                            
+                                            // Zoom to fit route
+                                            zoomToRoute(mapView!!, route.coordinates)
+                                        }
+                                        
+                                        isShowingRoute = true
                                         showRouteDetails = true
                                     }
                                 },
@@ -451,6 +534,29 @@ fun MapScreen(
                         ) {
                             Text("Start Navigation")
                         }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        OutlinedButton(
+                            onClick = {
+                                // Clear route from map
+                                mapView?.getMapboxMap()?.getStyle { style ->
+                                    clearRouteFromMap(style)
+                                }
+                                currentRoute = null
+                                isShowingRoute = false
+                                showRouteDetails = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Clear Route")
+                        }
                     }
                 }
             }
@@ -551,4 +657,143 @@ private fun calculateRoute(userLocation: Location, cafe: Cafe): MapRoute {
         duration = durationStr,
         coordinates = coordinates
     )
+}
+
+private fun drawRouteOnMap(
+    style: Style,
+    route: MapRoute,
+    startPoint: Point,
+    endPoint: Point
+) {
+    try {
+        // Remove existing route and markers if any
+        clearRouteFromMap(style)
+        
+        // Add route line source
+        val lineString = LineString.fromLngLats(route.coordinates)
+        val routeFeature = Feature.fromGeometry(lineString)
+        
+        style.addSource(
+            geoJsonSource("route-source") {
+                feature(routeFeature)
+            }
+        )
+        
+        // Add route line layer with styling
+        style.addLayer(
+            lineLayer("route-layer", "route-source") {
+                lineColor("#2196F3") // Blue color
+                lineWidth(6.0)
+                lineCap(LineCap.ROUND)
+                lineJoin(LineJoin.ROUND)
+                lineOpacity(0.8)
+            }
+        )
+        
+        // Add start marker (user location)
+        val startFeature = Feature.fromGeometry(startPoint)
+        style.addSource(
+            geoJsonSource("start-marker-source") {
+                feature(startFeature)
+            }
+        )
+        
+        // Add end marker (cafe)
+        val endFeature = Feature.fromGeometry(endPoint)
+        style.addSource(
+            geoJsonSource("end-marker-source") {
+                feature(endFeature)
+            }
+        )
+        
+        // Add symbol layers for markers with emoji icons
+        style.addLayer(
+            symbolLayer("start-marker-layer", "start-marker-source") {
+                textField("📍") // Pin emoji for start
+                textSize(32.0)
+                textOffset(listOf(0.0, -1.0))
+                textAllowOverlap(true)
+                textIgnorePlacement(true)
+            }
+        )
+        
+        style.addLayer(
+            symbolLayer("end-marker-layer", "end-marker-source") {
+                textField("☕") // Coffee emoji for destination
+                textSize(32.0)
+                textOffset(listOf(0.0, -1.0))
+                textAllowOverlap(true)
+                textIgnorePlacement(true)
+            }
+        )
+        
+    } catch (e: Exception) {
+        // Handle error silently - layer might already exist
+        e.printStackTrace()
+    }
+}
+
+private fun clearRouteFromMap(style: Style) {
+    try {
+        // Remove route layer and source
+        style.removeStyleLayer("route-layer")
+        style.removeStyleSource("route-source")
+        
+        // Remove marker layers and sources
+        style.removeStyleLayer("start-marker-layer")
+        style.removeStyleSource("start-marker-source")
+        style.removeStyleLayer("end-marker-layer")
+        style.removeStyleSource("end-marker-source")
+    } catch (e: Exception) {
+        // Layers/sources might not exist, ignore
+    }
+}
+
+private fun zoomToRoute(mapView: MapView, coordinates: List<Point>) {
+    if (coordinates.size < 2) return
+    
+    try {
+        // Calculate bounds that contain all coordinates
+        var minLat = coordinates.minOf { it.latitude() }
+        var maxLat = coordinates.maxOf { it.latitude() }
+        var minLng = coordinates.minOf { it.longitude() }
+        var maxLng = coordinates.maxOf { it.longitude() }
+        
+        // Add padding to bounds
+        val latPadding = (maxLat - minLat) * 0.3
+        val lngPadding = (maxLng - minLng) * 0.3
+        
+        minLat -= latPadding
+        maxLat += latPadding
+        minLng -= lngPadding
+        maxLng += lngPadding
+        
+        // Calculate center point
+        val centerLat = (minLat + maxLat) / 2
+        val centerLng = (minLng + maxLng) / 2
+        
+        // Calculate appropriate zoom level
+        val latDiff = maxLat - minLat
+        val lngDiff = maxLng - minLng
+        val maxDiff = maxOf(latDiff, lngDiff)
+        
+        // Rough zoom level calculation
+        val zoom = when {
+            maxDiff > 0.5 -> 10.0
+            maxDiff > 0.1 -> 12.0
+            maxDiff > 0.05 -> 13.0
+            maxDiff > 0.01 -> 14.0
+            else -> 15.0
+        }
+        
+        // Animate camera to show route
+        mapView.getMapboxMap().setCamera(
+            CameraOptions.Builder()
+                .center(Point.fromLngLat(centerLng, centerLat))
+                .zoom(zoom)
+                .build()
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
 }
