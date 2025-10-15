@@ -36,6 +36,7 @@ android {
     }
     buildFeatures {
         compose true
+        viewBinding true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.4'
@@ -69,11 +70,36 @@ dependencies {
     // Mapbox Maps SDK - Updated to match Search SDK requirements
     implementation('com.mapbox.maps:android-ndk27:11.9.0')
     
-    // Mapbox Search SDK - Official modules for place search
+    // Mapbox Search SDK - Official modules for place search and discovery
     implementation 'com.mapbox.search:place-autocomplete-ndk27:2.14.0'
     implementation 'com.mapbox.search:discover-ndk27:2.14.0'
     implementation 'com.mapbox.search:mapbox-search-android-ndk27:2.14.0'
     implementation 'com.mapbox.search:mapbox-search-android-ui-ndk27:2.14.0'
+    
+    // Mapbox Navigation SDK - For turn-by-turn navigation
+    implementation('com.mapbox.navigationcore:android:3.0.0') {
+        exclude group: 'com.mapbox.maps', module: 'android'
+        exclude group: 'com.mapbox.common', module: 'common'
+    }
+    implementation('com.mapbox.navigationcore:ui-maps:3.0.0') {
+        exclude group: 'com.mapbox.maps', module: 'android'
+        exclude group: 'com.mapbox.common', module: 'common'
+    }
+    implementation('com.mapbox.navigationcore:ui-components:3.0.0') {
+        exclude group: 'com.mapbox.maps', module: 'android'
+        exclude group: 'com.mapbox.common', module: 'common'
+    }
+    implementation('com.mapbox.navigationcore:tripdata:3.0.0') {
+        exclude group: 'com.mapbox.maps', module: 'android'
+        exclude group: 'com.mapbox.common', module: 'common'
+    }
+    implementation('com.mapbox.navigationcore:voice:3.0.0') {
+        exclude group: 'com.mapbox.maps', module: 'android'
+        exclude group: 'com.mapbox.common', module: 'common'
+    }
+    
+    // CardView for trip progress card
+    implementation 'androidx.cardview:cardview:1.0.0'
     
     // Location services
     implementation 'com.google.android.gms:play-services-location:21.0.1'
