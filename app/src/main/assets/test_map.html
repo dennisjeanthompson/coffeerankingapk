@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <title>Test Map</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #content {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <div class="status">
+            <h2>🗺️ Map Test</h2>
+            <p id="status">Initializing...</p>
+        </div>
+        <div class="status">
+            <p><strong>API Key:</strong> <span id="apiKey">Not set</span></p>
+            <p><strong>Network:</strong> <span id="network">Checking...</span></p>
+            <p><strong>TomTom SDK:</strong> <span id="tomtom">Loading...</span></p>
+        </div>
+    </div>
+    
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('Status:', message);
+        }
+        
+        function updateApiKey(key) {
+            document.getElementById('apiKey').textContent = key ? 'Present (' + key.substring(0, 10) + '...)' : 'Missing';
+        }
+        
+        function updateNetwork() {
+            document.getElementById('network').textContent = navigator.onLine ? 'Connected' : 'Offline';
+        }
+        
+        function testTomTomSDK() {
+            // Try to load TomTom SDK
+            const script1 = document.createElement('script');
+            script1.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps-web.min.js';
+            script1.onload = function() {
+                console.log('TomTom Maps SDK loaded');
+                
+                const script2 = document.createElement('script');
+                script2.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/services/services-web.min.js';
+                script2.onload = function() {
+                    console.log('TomTom Services SDK loaded');
+                    
+                    if (typeof tt !== 'undefined') {
+                        document.getElementById('tomtom').textContent = 'Loaded Successfully';
+                        updateStatus('TomTom SDK ready!');
+                        
+                        // Notify Android
+                        if (window.AndroidInterface) {
+                            window.AndroidInterface.onMapReady();
+                        }
+                    } else {
+                        document.getElementById('tomtom').textContent = 'Failed - tt object not found';
+                        updateStatus('TomTom SDK failed to initialize');
+                    }
+                };
+                script2.onerror = function() {
+                    document.getElementById('tomtom').textContent = 'Failed to load services';
+                    updateStatus('Failed to load TomTom services');
+                };
+                document.head.appendChild(script2);
+            };
+            script1.onerror = function() {
+                document.getElementById('tomtom').textContent = 'Failed to load maps';
+                updateStatus('Failed to load TomTom maps SDK');
+            };
+            document.head.appendChild(script1);
+        }
+        
+        function initTest(apiKey) {
+            updateApiKey(apiKey);
+            updateNetwork();
+            updateStatus('Testing TomTom SDK...');
+            testTomTomSDK();
+        }
+        
+        // Check network status
+        window.addEventListener('online', updateNetwork);
+        window.addEventListener('offline', updateNetwork);
+        
+        // Initial setup
+        updateNetwork();
+        updateStatus('Ready for testing');
+    </script>
+</body>
+</html>

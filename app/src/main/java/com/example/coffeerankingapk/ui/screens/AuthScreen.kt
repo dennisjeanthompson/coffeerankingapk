@@ -95,8 +95,7 @@ fun AuthScreen(
                 text = if (isLoading) "Signing in..." else "Sign In",
                 onClick = {
                     isLoading = true
-                    // TODO: Implement Firebase Auth login
-                    // For now, simulate login success
+                    // Mock authentication - replace with your preferred auth solution
                     onLoginSuccess()
                 },
                 enabled = isFormValid && !isLoading,
@@ -109,20 +108,13 @@ fun AuthScreen(
             OutlineButton(
                 text = "Continue with Google",
                 onClick = {
-                    // TODO: Implement Google Sign-In
+                    // Mock Google Sign-In - replace with your preferred auth solution
                     onLoginSuccess()
                 },
                 enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
-            )
-            
-            // Note about Firebase setup
-            Text(
-                text = "TODO: Configure Firebase Auth in google-services.json",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 24.dp)
             )
         }
     }

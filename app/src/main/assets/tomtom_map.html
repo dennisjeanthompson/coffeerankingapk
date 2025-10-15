@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>TomTom Coffee Map</title>
+    <!-- Performance hints for faster network setup -->
+    <link rel="preconnect" href="https://api.tomtom.com" crossorigin>
+    <link rel="dns-prefetch" href="//api.tomtom.com">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: transparent;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #e8f4f8;
+        }
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            text-align: center;
+        }
+        .loading {
+            color: #1976d2;
+        }
+        .ready {
+            color: #2e7d32;
+        }
+        .error {
+            color: #d32f2f;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1976d2;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <div class="spinner"></div>
+        <span id="statusText" class="loading">Initializing TomTom Map...</span>
+    </div>
+    <div id="map"></div>
+    <div id="staticFallback" style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:900;display:none;background:#f7f7f7 center/cover no-repeat;"></div>
+    <div id="debugHud" style="position:absolute;top:8px;left:8px;z-index:1200;background:rgba(0,0,0,0.65);color:#fff;padding:8px 10px;border-radius:6px;font:12px/1.35 Arial,sans-serif;display:none;max-width:90%;white-space:pre-wrap;"></div>
+    
+    <script>
+        let map;
+        let userLocationMarker;
+        let coffeeMarkers = [];
+        let apiKey = '';
+        let isMapReady = false;
+        let statusElement = document.getElementById('status');
+        let statusText = document.getElementById('statusText');
+        const debugHud = document.getElementById('debugHud');
+        const timings = { start: 0, cssRequested: 0, mapsRequested: 0, servicesRequested: 0, mapsLoaded: 0, servicesLoaded: 0, mapCreated: 0, mapLoadEvent: 0 };
+    let errorCount = 0;
+    let hudVisible = false;
+    let fallbackCenter = null; // [lon, lat] for static fallback
+        function maskKey(k) { if (!k) return '(none)'; if (k.length <= 8) return k; return k.slice(0,4) + '...' + k.slice(-4); }
+        function updateHUD() {
+            if (!hudVisible) return;
+            const parts = [];
+            parts.push(`Key: ${maskKey(apiKey)}`);
+            parts.push(`Online: ${navigator.onLine ? 'yes' : 'no'}`);
+            if (timings.start) {
+                const now = performance.now();
+                const ms = (v)=> v?`${Math.round(v - timings.start)}ms`:'-';
+                parts.push(`SDK css: ${ms(timings.cssRequested)} maps: ${ms(timings.mapsLoaded)} services: ${ms(timings.servicesLoaded)}`);
+                parts.push(`Map create: ${ms(timings.mapCreated)} load: ${ms(timings.mapLoadEvent) || '-'}`);
+                parts.push(`Now: ${Math.round(now - timings.start)}ms  Errors: ${errorCount}`);
+            }
+            debugHud.textContent = parts.join('\n');
+        }
+        function showDebugHUD(show) { hudVisible = !!show; debugHud.style.display = hudVisible ? 'block' : 'none'; updateHUD(); }
+        function toggleDebugHUD() { showDebugHUD(!hudVisible); }
+        
+        function updateStatus(message, type = 'loading') {
+            statusText.textContent = message;
+            statusText.className = type;
+            if (type === 'ready') {
+                // Hide status after 2 seconds when ready
+                setTimeout(() => {
+                    statusElement.classList.add('hide');
+                }, 2000);
+            }
+            console.log('Status:', message);
+        }
+        
+        function showError(message) {
+            updateStatus('Error: ' + message, 'error');
+            document.querySelector('.spinner').style.display = 'none';
+        }
+        
+    function loadTomTomSDK() {
+            timings.start = performance.now();
+            updateStatus('Loading TomTom SDK...');
+            
+            return new Promise((resolve, reject) => {
+                // Load CSS
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps.css';
+                timings.cssRequested = performance.now();
+                document.head.appendChild(link);
+                
+                // Load Maps SDK
+                const script1 = document.createElement('script');
+                script1.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps-web.min.js';
+                timings.mapsRequested = performance.now();
+                script1.onload = () => {
+                    timings.mapsLoaded = performance.now();
+                    updateStatus('Loading services...');
+                    // Load Services SDK
+                    const script2 = document.createElement('script');
+                    script2.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/services/services-web.min.js';
+                    timings.servicesRequested = performance.now();
+                    script2.onload = () => { timings.servicesLoaded = performance.now(); resolve(); };
+                    script2.onerror = () => reject('Failed to load services');
+                    document.head.appendChild(script2);
+                };
+                script1.onerror = () => reject('Failed to load maps SDK');
+                document.head.appendChild(script1);
+            });
+        }
+        
+    function initMap(tomtomApiKey) {
+            apiKey = tomtomApiKey;
+            
+            if (!apiKey) {
+                showError('API key missing');
+                return;
+            }
+            
+            // Check network connection
+            if (!navigator.onLine) {
+                showError('No internet connection');
+                return;
+            }
+            
+            loadTomTomSDK()
+                .then(() => {
+                    updateStatus('Creating map...');
+                    
+                    if (typeof tt === 'undefined') {
+                        showError('TomTom SDK not loaded');
+                        return;
+                    }
+                    
+                    if (tt.setProductInfo) {
+                        try { tt.setProductInfo('CoffeeRankingAPK','1.0.0'); } catch (_) {}
+                    }
+                    map = tt.map({
+                        key: apiKey,
+                        container: 'map',
+                        center: [0, 0],
+                        zoom: 2,
+                        // Use a known valid style id from TomTom Web SDK
+                        style: 'tomtom://vector/1/basic-main'
+                    });
+                    timings.mapCreated = performance.now();
+                    updateHUD();
+                    
+                    // Consider map initialized immediately for a snappy UI; tiles may still stream in
+                    isMapReady = true;
+                    updateStatus('Map initialized. Loading tiles...');
+                    if (window.AndroidInterface) {
+                        window.AndroidInterface.onMapReady();
+                    }
+                    
+                    map.on('load', () => {
+                        updateStatus('Map ready!', 'ready');
+                        timings.mapLoadEvent = performance.now();
+                        updateHUD();
+                        // isMapReady already set; keep as is
+                    });
+                    
+                    map.on('error', (e) => {
+                        console.error('Map error event:', e && (e.error || e));
+                        // Keep UI responsive; don't throw to global handler
+                        errorCount++;
+                        updateStatus('Map reported an error', 'error');
+                        updateHUD();
+                        if (window.AndroidInterface && e) {
+                            try { window.AndroidInterface.onJsError('Map error', 'tt.map', 0, 0); } catch (_) {}
+                        }
+                    });
+                    
+                    // Instead of erroring on slow networks, gently inform the user
+                    setTimeout(() => {
+                        if (!map || !document.getElementById('map')) return;
+                        if (!statusElement.classList.contains('hide')) {
+                            updateStatus('Still loading map tiles...');
+                            updateHUD();
+                        }
+                    }, 20000);
+
+                    // Actively probe tile access; if blocked (401/403), switch to static-only mode
+                    testTilesAccess(apiKey).then((ok) => {
+                        if (!ok) {
+                            updateStatus('Interactive tiles blocked. Showing static map.', 'error');
+                            // Hide interactive map so Android static fallback is visible beneath
+                            try { document.getElementById('map').style.display = 'none'; } catch (_) {}
+                            try { statusElement.classList.add('hide'); } catch (_) {}
+                            try { showStaticFallback(); } catch (_) {}
+                            if (window.AndroidInterface) {
+                                try { window.AndroidInterface.onJsError('Tiles blocked (enable Maps product or relax domain restrictions)', 'tile-probe', 0, 0); } catch (_) {}
+                            }
+                        }
+                    });
+                    
+                })
+                .catch(error => {
+                    console.error('Init error:', error);
+                    errorCount++;
+                    updateHUD();
+                    showError(error.toString());
+                });
+            // Keep HUD refreshed while visible
+            const hudInterval = setInterval(() => {
+                if (!hudVisible) return;
+                updateHUD();
+                if (isMapReady && timings.mapLoadEvent) {
+                    // Slow down updates after map is fully ready
+                    clearInterval(hudInterval);
+                }
+            }, 1000);
+        }
+
+        async function testTilesAccess(key) {
+            try {
+                // Tiny probe tile request
+                const url = `https://api.tomtom.com/map/1/tile/basic/main/0/0/0.pbf?key=${encodeURIComponent(key)}`;
+                const res = await fetch(url, { method: 'GET', referrerPolicy: 'no-referrer' });
+                if (res.status === 200) return true;
+                if (res.status === 401 || res.status === 403) {
+                    console.error('Tile probe unauthorized/forbidden:', res.status);
+                    return false;
+                }
+                console.warn('Tile probe unexpected status:', res.status);
+                return false;
+            } catch (e) {
+                console.error('Tile probe error:', e);
+                return false;
+            }
+        }
+        
+        function setUserLocation(lat, lon) {
+            if (!isMapReady || !map) {
+                setTimeout(() => setUserLocation(lat, lon), 1000);
+                return;
+            }
+            
+            try {
+                const userLocation = [lon, lat];
+                try { fallbackCenter = userLocation.slice(); } catch (_) {}
+                
+                if (userLocationMarker) {
+                    userLocationMarker.remove();
+                }
+                
+                const userElement = document.createElement('div');
+                userElement.style.cssText = `
+                    width: 20px; height: 20px;
+                    background: #4285F4; border-radius: 50%;
+                    border: 3px solid white;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+                `;
+                
+                userLocationMarker = new tt.Marker({ element: userElement })
+                    .setLngLat(userLocation)
+                    .addTo(map);
+                
+                map.setCenter(userLocation);
+                map.setZoom(15);
+            } catch (error) {
+                console.error('Error setting user location:', error);
+            }
+        }
+        
+        function showStaticFallback() {
+            const holder = document.getElementById('staticFallback');
+            if (!holder) return;
+            const center = fallbackCenter || [0, 0];
+            const lon = center[0];
+            const lat = center[1];
+            const dpr = (window.devicePixelRatio || 1);
+            const width = Math.min(Math.floor(window.innerWidth * dpr), 2048);
+            const height = Math.min(Math.floor(window.innerHeight * dpr), 2048);
+            const url = `https://api.tomtom.com/map/1/staticimage?key=${encodeURIComponent(apiKey)}&center=${lon},${lat}&zoom=14&format=png&layer=basic&style=main&width=${width}&height=${height}`;
+            holder.style.backgroundImage = `url('${url}')`;
+            holder.style.display = 'block';
+        }
+        
+        function addCoffeeShops(coffeeShopsJson) {
+            if (!isMapReady || !map) {
+                setTimeout(() => addCoffeeShops(coffeeShopsJson), 1000);
+                return;
+            }
+            
+            try {
+                const coffeeShops = JSON.parse(coffeeShopsJson);
+                
+                coffeeMarkers.forEach(marker => marker.remove());
+                coffeeMarkers = [];
+                
+                coffeeShops.forEach(shop => {
+                    const element = document.createElement('div');
+                    element.style.cssText = `
+                        width: 30px; height: 30px;
+                        background: #8B4513; border-radius: 50%;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        cursor: pointer; text-align: center;
+                        line-height: 26px; font-size: 16px;
+                    `;
+                    element.innerHTML = '☕';
+                    
+                    const marker = new tt.Marker({ element })
+                        .setLngLat([shop.position.lon, shop.position.lat])
+                        .addTo(map);
+                    
+                    element.onclick = () => {
+                        if (window.AndroidInterface) {
+                            window.AndroidInterface.onPlaceSelected(JSON.stringify(shop));
+                        }
+                    };
+                    
+                    coffeeMarkers.push(marker);
+                });
+            } catch (error) {
+                console.error('Error adding coffee shops:', error);
+            }
+        }
+        
+        function addSearchResults(resultsJson) {
+            if (!isMapReady || !map) {
+                setTimeout(() => addSearchResults(resultsJson), 1000);
+                return;
+            }
+            
+            try {
+                const results = JSON.parse(resultsJson);
+                
+                coffeeMarkers.forEach(marker => marker.remove());
+                coffeeMarkers = [];
+                
+                results.forEach(place => {
+                    const element = document.createElement('div');
+                    element.style.cssText = `
+                        width: 25px; height: 25px;
+                        background: #FF6B6B; border-radius: 50%;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        cursor: pointer; text-align: center;
+                        line-height: 21px; font-size: 12px;
+                    `;
+                    element.innerHTML = '📍';
+                    
+                    const marker = new tt.Marker({ element })
+                        .setLngLat([place.position.lon, place.position.lat])
+                        .addTo(map);
+                    
+                    element.onclick = () => {
+                        if (window.AndroidInterface) {
+                            window.AndroidInterface.onPlaceSelected(JSON.stringify(place));
+                        }
+                    };
+                    
+                    coffeeMarkers.push(marker);
+                });
+            } catch (error) {
+                console.error('Error adding search results:', error);
+            }
+        }
+        
+        function displayRoute(routeJson) {
+            if (!isMapReady || !map) {
+                setTimeout(() => displayRoute(routeJson), 1000);
+                return;
+            }
+            
+            try {
+                const route = JSON.parse(routeJson);
+                
+                if (map.getLayer && map.getLayer('route')) {
+                    map.removeLayer('route');
+                    map.removeSource('route');
+                }
+                
+                if (route.legs && route.legs.length > 0) {
+                    const coordinates = [];
+                    route.legs.forEach(leg => {
+                        leg.points.forEach(point => {
+                            coordinates.push([point.longitude, point.latitude]);
+                        });
+                    });
+                    
+                    map.addSource('route', {
+                        type: 'geojson',
+                        data: {
+                            type: 'Feature',
+                            properties: {},
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: coordinates
+                            }
+                        }
+                    });
+                    
+                    map.addLayer({
+                        id: 'route',
+                        type: 'line',
+                        source: 'route',
+                        layout: { 'line-join': 'round', 'line-cap': 'round' },
+                        paint: { 'line-color': '#1976D2', 'line-width': 4 }
+                    });
+                    
+                    const bounds = new tt.LngLatBounds();
+                    coordinates.forEach(coord => bounds.extend(coord));
+                    map.fitBounds(bounds, { padding: 50 });
+                }
+            } catch (error) {
+                console.error('Error displaying route:', error);
+            }
+        }
+        
+        function clearRoute() {
+            try {
+                if (map && map.getLayer && map.getLayer('route')) {
+                    map.removeLayer('route');
+                    map.removeSource('route');
+                }
+            } catch (error) {
+                console.error('Error clearing route:', error);
+            }
+        }
+        
+        function focusOnPlace(placeJson) {
+            if (!isMapReady || !map) {
+                setTimeout(() => focusOnPlace(placeJson), 1000);
+                return;
+            }
+            
+            try {
+                const place = JSON.parse(placeJson);
+                map.setCenter([place.position.lon, place.position.lat]);
+                map.setZoom(17);
+            } catch (error) {
+                console.error('Error focusing on place:', error);
+            }
+        }
+        
+        // Network status monitoring
+        window.addEventListener('online', () => { console.log('Network: Online'); updateHUD(); });
+        window.addEventListener('offline', () => {
+            showError('Connection lost');
+            updateHUD();
+        });
+        
+        // Error handling
+        window.addEventListener('error', (e) => {
+            console.error('Script error:', e.error);
+            errorCount++;
+            updateHUD();
+            showError('Script error occurred');
+            if (window.AndroidInterface) {
+                try { window.AndroidInterface.onJsError((e && e.message) || 'Unknown', (e && e.filename) || 'global', (e && e.lineno) || 0, (e && e.colno) || 0); } catch (_) {}
+            }
+        });
+
+        // Console hook to forward warnings/errors to Android logs
+        ['log','warn','error'].forEach(level => {
+            const orig = console[level].bind(console);
+            console[level] = function(...args) {
+                try {
+                    if (window.AndroidInterface) {
+                        window.AndroidInterface.onJsLog(level, args.join(' '));
+                    }
+                } catch (_) {}
+                orig(...args);
+            }
+        });
+    </script>
+</body>
+</html>

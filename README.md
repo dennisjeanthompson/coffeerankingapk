@@ -7,7 +7,7 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 ### For Cafe Owners:
 - **Dashboard**: View KPI metrics (total reviews, average rating, monthly visits)
 - **Analytics**: Track reviews over time with interactive charts
-- **Location Management**: Place cafe on interactive MapTiler maps
+- **Location Management**: Basic location display for cafes
 - **Coupon Management**: Create and manage promotional coupons
 - **Business Settings**: Manage cafe information and operating hours
 
@@ -22,12 +22,11 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 
 - **Language**: Kotlin
 - **UI Framework**: Jetpack Compose with Material 3
-- **Architecture**: MVVM with Hilt for Dependency Injection
+- **Architecture**: MVVM pattern
 - **Navigation**: Jetpack Navigation Compose with nested graphs
-- **Maps**: MapTiler with OSMDroid rendering
 - **Charts**: Custom Compose charts for analytics
-- **Authentication**: Firebase Auth (configured for stubs)
-- **Database**: Firebase Firestore (configured for stubs)
+- **Authentication**: Mock authentication (ready for integration)
+- **Database**: Mock data storage (ready for integration)
 - **Image Loading**: Coil
 - **Build System**: Gradle
 
@@ -72,35 +71,14 @@ app/src/main/java/com/example/coffeerankingapk/
    cd coffeerankingapk
    ```
 
-2. **API Keys Setup** (Required for full functionality):
-
-   **Google Maps API Key**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Enable Maps SDK for Android
-   - Create an API key
-   - Add your API key to `app/src/main/AndroidManifest.xml`:
-   ```xml
-   <meta-data
-       android:name="com.google.android.geo.API_KEY"
-       android:value="YOUR_GOOGLE_MAPS_API_KEY_HERE" />
-   ```
-
-   **Firebase Setup**:
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Create a new project
-   - Add Android app with package name: `com.example.coffeerankingapk`
-   - Download `google-services.json`
-   - Place it in `app/` directory
-   - Enable Authentication and Firestore in Firebase console
-
-3. **Build the APK**:
+2. **Build the APK**:
    ```bash
    ./gradlew assembleDebug
    ```
 
    The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`
 
-4. **Install on device**:
+3. **Install on device**:
    ```bash
    ./gradlew installDebug
    ```
@@ -122,19 +100,19 @@ app/src/main/java/com/example/coffeerankingapk/
 ## Configuration Notes
 
 ### Current State
-The app is configured with interactive maps and mock data. Key features implemented:
+The app is configured with mock data and placeholder features. Key features implemented:
 
-✅ **MapTiler Integration**: Interactive maps with MapTiler tiles (API key: 301m71fkixa7RnnP0FaL)
 ✅ **Complete Navigation**: Both owner and lover flows with bottom navigation
 ✅ **Enhanced UI**: Dashboard, rating, rewards, profile screens matching mockups
+✅ **Mock Data Integration**: Sample cafes, reviews, and coupons for testing
 
-Key TODOs for production:
-1. **Firebase Auth**: Replace mock login with real Firebase Auth in `AuthScreen.kt`
-2. **Firebase Firestore**: Implement real data repositories replacing mock JSON data
+Key areas ready for integration:
+1. **Authentication**: Replace mock login with your preferred auth solution in `AuthScreen.kt`
+2. **Data Storage**: Implement real data repositories replacing mock JSON data
 3. **Image URLs**: Replace placeholder URLs with real cafe images
 4. **Date Pickers**: Complete coupon date picker implementation
-5. **Push Notifications**: Add FCM for rewards and updates
-6. **Map Markers**: Add cafe markers and location selection feedback
+5. **Push Notifications**: Add notification system for rewards and updates
+6. **Location Services**: Add real location features and cafe mapping
 
 ### Mock Data
 The app includes sample data in `data/mock/`:
@@ -145,10 +123,8 @@ The app includes sample data in `data/mock/`:
 ### Dependencies
 All dependencies are configured in `app/build.gradle`:
 - Compose BOM for UI consistency
-- Hilt for dependency injection
 - Navigation Compose for routing
-- Firebase BOM for backend services
-- OSMDroid with MapTiler tiles for location features
+- MPAndroidChart for analytics charts
 - Coil for image loading
 
 ## Testing
@@ -164,9 +140,8 @@ Run tests with:
 ### Common Issues:
 
 1. **Build fails with "Could not resolve"**: Run `./gradlew clean` then rebuild
-2. **Maps not loading**: Verify MapTiler API key is correctly configured in AndroidManifest.xml
-3. **Firebase errors**: Ensure `google-services.json` is in the `app/` directory
-4. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
+2. **Gradle sync issues**: Use "File → Invalidate Caches and Restart"
+3. **App crashes on startup**: Check that all mock data files are properly loaded
 
 ### Support
 For issues with the build process or setup, check:

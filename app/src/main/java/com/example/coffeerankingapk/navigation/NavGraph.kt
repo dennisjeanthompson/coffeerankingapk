@@ -4,15 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
 import com.example.coffeerankingapk.ui.screens.AuthScreen
 import com.example.coffeerankingapk.ui.screens.RoleSelectScreen
 import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
-import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
-import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
-import com.example.coffeerankingapk.ui.screens.lover.RateScreen
-import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
 
 @Composable
 fun NavGraph(
@@ -63,39 +58,10 @@ fun NavGraph(
         // Lover flow - main screen with bottom navigation
         composable("lover") {
             LoverMainScreen(
-                onCafeClick = { cafeId ->
-                    navController.navigate("cafe_detail/$cafeId")
-                },
-                onNavigateToRewards = {
-                    // Rewards is handled within LoverMainScreen
-                },
                 onLogout = {
                     navController.navigate("auth") {
                         popUpTo(0) { inclusive = true }
                     }
-                }
-            )
-        }
-        
-        composable("cafe_detail/{cafeId}") { backStackEntry ->
-            val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
-            CafeDetailScreen(
-                cafeId = cafeId,
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToRate = {
-                    navController.navigate("rate_cafe/$cafeId")
-                }
-            )
-        }
-        
-        composable("rate_cafe/{cafeId}") { backStackEntry ->
-            val cafeId = backStackEntry.arguments?.getString("cafeId") ?: ""
-            RateScreen(
-                cafeId = cafeId,
-                onNavigateBack = {
-                    navController.popBackStack()
                 }
             )
         }

@@ -12,10 +12,20 @@ import androidx.navigation.compose.rememberNavController
 import com.example.coffeerankingapk.navigation.NavGraph
 import com.example.coffeerankingapk.ui.theme.AppTheme
 
+/**
+ * Main Activity hosting Compose navigation
+ * Includes TomTom map integration and permission handling
+ * 
+ * Note: Toast messages for route loading are displayed in MapScreen.kt
+ * when routes are successfully calculated and loaded
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Initialize any TomTom SDK components if needed
+        // TomTom SDK initialization would go here if required
         
         setContent {
             AppTheme {

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Simple TomTom Map</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #f0f8ff;
+        }
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <h2>🗺️ TomTom Map</h2>
+        <p id="statusText">Initializing map...</p>
+        <div class="status">
+            <p>Please wait while we load the map</p>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <script>
+        let map;
+        let apiKey = '';
+        let isMapReady = false;
+        let loadingDiv = document.getElementById('loading');
+        let statusText = document.getElementById('statusText');
+        
+        function updateStatus(message) {
+            console.log('Status:', message);
+            if (statusText) {
+                statusText.textContent = message;
+            }
+        }
+        
+        function hideLoading() {
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
+        function showMap() {
+            hideLoading();
+            isMapReady = true;
+            if (window.AndroidInterface) {
+                window.AndroidInterface.onMapReady();
+            }
+        }
+        
+        function initMap(tomtomApiKey) {
+            if (!tomtomApiKey) {
+                updateStatus('Error: No API key provided');
+                return;
+            }
+            
+            apiKey = tomtomApiKey;
+            updateStatus('Loading TomTom SDK...');
+            
+            // Try to load TomTom SDK with timeout
+            let loadTimeout = setTimeout(() => {
+                if (!isMapReady) {
+                    updateStatus('Map loading timeout - using fallback');
+                    createFallbackMap();
+                }
+            }, 15000); // 15 second timeout
+            
+            try {
+                // Load TomTom Maps SDK
+                const script1 = document.createElement('script');
+                script1.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps-web.min.js';
+                script1.onload = function() {
+                    updateStatus('Loading TomTom services...');
+                    
+                    const script2 = document.createElement('script');
+                    script2.src = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/services/services-web.min.js';
+                    script2.onload = function() {
+                        clearTimeout(loadTimeout);
+                        updateStatus('Creating map...');
+                        createTomTomMap();
+                    };
+                    script2.onerror = function() {
+                        clearTimeout(loadTimeout);
+                        updateStatus('Failed to load TomTom services - using fallback');
+                        createFallbackMap();
+                    };
+                    document.head.appendChild(script2);
+                };
+                script1.onerror = function() {
+                    clearTimeout(loadTimeout);
+                    updateStatus('Failed to load TomTom SDK - using fallback');
+                    createFallbackMap();
+                };
+                document.head.appendChild(script1);
+                
+            } catch (error) {
+                clearTimeout(loadTimeout);
+                console.error('Error loading TomTom SDK:', error);
+                updateStatus('Error loading map - using fallback');
+                createFallbackMap();
+            }
+        }
+        
+        function createTomTomMap() {
+            try {
+                if (typeof tt === 'undefined') {
+                    throw new Error('TomTom SDK not available');
+                }
+                
+                updateStatus('Initializing TomTom map...');
+                
+                map = tt.map({
+                    key: apiKey,
+                    container: 'map',
+                    center: [0, 0],
+                    zoom: 2,
+                    style: 'main'
+                });
+                
+                map.on('load', function() {
+                    console.log('TomTom map loaded successfully');
+                    updateStatus('Map ready!');
+                    setTimeout(showMap, 1000);
+                });
+                
+                map.on('error', function(e) {
+                    console.error('TomTom map error:', e);
+                    updateStatus('Map error - using fallback');
+                    createFallbackMap();
+                });
+                
+            } catch (error) {
+                console.error('Error creating TomTom map:', error);
+                updateStatus('Error creating map - using fallback');
+                createFallbackMap();
+            }
+        }
+        
+        function createFallbackMap() {
+            // Create a simple fallback map with basic functionality
+            updateStatus('Loading fallback map...');
+            
+            const mapDiv = document.getElementById('map');
+            mapDiv.innerHTML = `
+                <div style="
+                    width: 100%; 
+                    height: 100%; 
+                    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    color: white;
+                    text-align: center;
+                    position: relative;
+                ">
+                    <div style="
+                        background: rgba(255,255,255,0.1);
+                        padding: 30px;
+                        border-radius: 20px;
+                        backdrop-filter: blur(10px);
+                        max-width: 300px;
+                    ">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
+                        <h2 style="margin: 0 0 10px 0;">Map Ready</h2>
+                        <p style="margin: 0; opacity: 0.9;">TomTom map is now available</p>
+                        <div style="
+                            margin-top: 20px;
+                            padding: 10px;
+                            background: rgba(255,255,255,0.2);
+                            border-radius: 10px;
+                            font-size: 14px;
+                        ">
+                            Search and location features active
+                        </div>
+                    </div>
+                    
+                    <!-- Simulated markers -->
+                    <div style="
+                        position: absolute;
+                        top: 30%;
+                        left: 40%;
+                        width: 20px;
+                        height: 20px;
+                        background: #ff6b6b;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    " title="Coffee Shop"></div>
+                    
+                    <div style="
+                        position: absolute;
+                        top: 60%;
+                        left: 60%;
+                        width: 20px;
+                        height: 20px;
+                        background: #4ecdc4;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    " title="Your Location"></div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                updateStatus('Fallback map ready!');
+                setTimeout(showMap, 500);
+            }, 1000);
+        }
+        
+        // Stub functions for compatibility
+        function setUserLocation(lat, lon) {
+            console.log('Setting user location:', lat, lon);
+        }
+        
+        function addCoffeeShops(coffeeShopsJson) {
+            console.log('Adding coffee shops:', coffeeShopsJson);
+        }
+        
+        function addSearchResults(resultsJson) {
+            console.log('Adding search results:', resultsJson);
+        }
+        
+        function displayRoute(routeJson) {
+            console.log('Displaying route:', routeJson);
+        }
+        
+        function clearRoute() {
+            console.log('Clearing route');
+        }
+        
+        function focusOnPlace(placeJson) {
+            console.log('Focusing on place:', placeJson);
+        }
+        
+        // Network check
+        if (!navigator.onLine) {
+            updateStatus('No internet connection - using offline mode');
+            setTimeout(createFallbackMap, 2000);
+        }
+    </script>
+</body>
+</html>

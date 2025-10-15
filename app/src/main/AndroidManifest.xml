@@ -2,10 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Internet permission for Firebase and Maps -->
+    <!-- Internet permission for app functionality -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Location permissions for TomTom location provider -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    
+    <!-- Required features for location services -->
+    <uses-feature 
+        android:name="android.hardware.location" 
+        android:required="false" />
+    <uses-feature 
+        android:name="android.hardware.location.gps" 
+        android:required="false" />
 
     <application
         android:name=".CoffeeRankingApplication"
@@ -17,12 +27,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CoffeeRankingAPK"
+        android:hardwareAccelerated="true"
         tools:targetApi="31">
 
-        <!-- MapTiler API key -->
+        <!-- TomTom SDK API key -->
         <meta-data
-            android:name="maptiler.api.key"
-            android:value="301m71fkixa7RnnP0FaL" />
+            android:name="com.tomtom.sdk.api.key"
+            android:value="${TOMTOM_API_KEY}" />
 
         <activity
             android:name=".MainActivity"

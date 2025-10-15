@@ -24,7 +24,3 @@
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.android.HiltAndroidApp
-
-# Keep Firebase classes
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }

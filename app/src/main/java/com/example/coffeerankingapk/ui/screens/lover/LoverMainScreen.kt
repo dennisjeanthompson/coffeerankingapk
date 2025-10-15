@@ -10,8 +10,6 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun LoverMainScreen(
-    onCafeClick: (String) -> Unit = {},
-    onNavigateToRewards: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -50,12 +48,16 @@ fun LoverMainScreen(
     ) { paddingValues ->
         when (selectedTab) {
             0 -> LoverDashboardScreen(
-                onCafeClick = onCafeClick,
+                onCafeClick = { },
                 onSearchClick = { selectedTab = 1 }
             )
-            1 -> LoverMapScreen(
-                onCafeClick = onCafeClick
-            )
+            1 -> {
+                // Map functionality placeholder
+                // TODO: Integrate TomTom Map here
+                LoverMapScreen(
+                    onCafeClick = { }
+                )
+            }
             2 -> RewardsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )

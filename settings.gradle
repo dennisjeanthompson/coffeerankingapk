@@ -5,12 +5,29 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
         maven { url 'https://jitpack.io' }
+        // TomTom SDK repository - requires API key as credentials
+        // Modern TomTom SDK uses the API key for Maven authentication
+        def localProps = new Properties()
+        def localPropsFile = new File(rootDir, "local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.withInputStream { localProps.load(it) }
+        }
+        def tomtomApiKey = System.getenv('TOMTOM_API_KEY') ?: localProps.getProperty('TOMTOM_API_KEY')
+        
+        maven {
+            url "https://repositories.tomtom.com/artifactory/maven"
+            credentials {
+                username = "apikey"
+                password = tomtomApiKey ?: ""
+            }
+        }
     }
 }
 
