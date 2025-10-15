@@ -66,8 +66,14 @@ dependencies {
     // Navigation Compose
     implementation 'androidx.navigation:navigation-compose:2.7.4'
     
-    // Mapbox Maps SDK - Core only to reduce build complexity
-    implementation('com.mapbox.maps:android:10.16.5')
+    // Mapbox Maps SDK - Updated to match Search SDK requirements
+    implementation('com.mapbox.maps:android-ndk27:11.9.0')
+    
+    // Mapbox Search SDK - Official modules for place search
+    implementation 'com.mapbox.search:place-autocomplete-ndk27:2.14.0'
+    implementation 'com.mapbox.search:discover-ndk27:2.14.0'
+    implementation 'com.mapbox.search:mapbox-search-android-ndk27:2.14.0'
+    implementation 'com.mapbox.search:mapbox-search-android-ui-ndk27:2.14.0'
     
     // Location services
     implementation 'com.google.android.gms:play-services-location:21.0.1'

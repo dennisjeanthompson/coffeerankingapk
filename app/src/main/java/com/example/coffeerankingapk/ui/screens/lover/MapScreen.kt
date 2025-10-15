@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.coffeerankingapk.R
 import com.example.coffeerankingapk.data.Cafe
 import com.example.coffeerankingapk.data.MockData
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -31,6 +37,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.mapbox.common.MapboxOptions
 import com.mapbox.geojson.Point
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Feature
@@ -48,6 +55,9 @@ import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.search.autocomplete.PlaceAutocomplete
+import com.mapbox.search.autocomplete.PlaceAutocompleteSuggestion
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 data class MapRoute(
@@ -62,6 +72,14 @@ fun MapScreen(
     onNavigateToCafe: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = context as? LifecycleOwner
+    
+    // Initialize Mapbox PlaceAutocomplete
+    val placeAutocomplete = remember {
+        MapboxOptions.accessToken = context.getString(R.string.mapbox_access_token)
+        PlaceAutocomplete.create(locationProvider = null)
+    }
+    
     var userLocation by remember { mutableStateOf<Location?>(null) }
     var selectedCafe by remember { mutableStateOf<Cafe?>(null) }
     var searchQuery by remember { mutableStateOf("") }
@@ -71,6 +89,10 @@ fun MapScreen(
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var isShowingRoute by remember { mutableStateOf(false) }
     
+    // Mapbox search suggestions
+    var searchSuggestions by remember { mutableStateOf<List<PlaceAutocompleteSuggestion>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+    
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -78,6 +100,7 @@ fun MapScreen(
         )
     )
 
+    // Mock cafes for backward compatibility
     val cafes = MockData.cafes
     val filteredCafes = remember(searchQuery) {
         if (searchQuery.isEmpty()) {
@@ -88,6 +111,29 @@ fun MapScreen(
                 cafe.address.contains(searchQuery, ignoreCase = true) ||
                 cafe.description.contains(searchQuery, ignoreCase = true)
             }
+        }
+    }
+    
+    // Search with Mapbox Place Autocomplete API
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotEmpty() && searchQuery.length >= 3) {
+            isSearching = true
+            try {
+                val response = placeAutocomplete.suggestions(query = searchQuery)
+                if (response.isValue) {
+                    searchSuggestions = response.value.orEmpty()
+                    Log.i("MapScreen", "Found ${searchSuggestions.size} suggestions for: $searchQuery")
+                } else {
+                    Log.e("MapScreen", "Error fetching suggestions: ${response.error}")
+                    searchSuggestions = emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("MapScreen", "Exception during search", e)
+                searchSuggestions = emptyList()
+            }
+            isSearching = false
+        } else {
+            searchSuggestions = emptyList()
         }
     }
 
@@ -103,34 +149,32 @@ fun MapScreen(
             factory = { ctx ->
                 MapView(ctx).apply {
                     mapView = this
-                    getMapboxMap().apply {
-                        loadStyleUri(Style.MAPBOX_STREETS) { style ->
-                            // Setup location component
-                            location.updateSettings {
-                                enabled = locationPermissions.allPermissionsGranted
-                                pulsingEnabled = true
-                            }
+                    mapboxMap.loadStyle(Style.MAPBOX_STREETS) {
+                        // Setup location component
+                        location.updateSettings {
+                            enabled = locationPermissions.allPermissionsGranted
+                            pulsingEnabled = true
+                        }
 
-                            // Set initial camera position
-                            if (userLocation != null) {
-                                setCamera(
-                                    CameraOptions.Builder()
-                                        .center(Point.fromLngLat(
-                                            userLocation!!.longitude,
-                                            userLocation!!.latitude
-                                        ))
-                                        .zoom(12.0)
-                                        .build()
-                                )
-                            } else {
-                                // Default to New York City area
-                                setCamera(
-                                    CameraOptions.Builder()
-                                        .center(Point.fromLngLat(-73.9857, 40.7484))
-                                        .zoom(12.0)
-                                        .build()
-                                )
-                            }
+                        // Set initial camera position
+                        if (userLocation != null) {
+                            mapboxMap.setCamera(
+                                CameraOptions.Builder()
+                                    .center(Point.fromLngLat(
+                                        userLocation!!.longitude,
+                                        userLocation!!.latitude
+                                    ))
+                                    .zoom(12.0)
+                                    .build()
+                            )
+                        } else {
+                            // Default to New York City area
+                            mapboxMap.setCamera(
+                                CameraOptions.Builder()
+                                    .center(Point.fromLngLat(-73.9857, 40.7484))
+                                    .zoom(12.0)
+                                    .build()
+                            )
                         }
                     }
                 }
@@ -196,43 +240,174 @@ fun MapScreen(
                 }
             }
 
-            // Search Results
-            if (showSearchResults && filteredCafes.isNotEmpty()) {
+            // Search Results - Combined Mapbox and Local Cafes
+            if (showSearchResults) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
+                        .heightIn(max = 400.dp)
                         .padding(top = 8.dp),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ) {
                     LazyColumn {
-                        items(filteredCafes) { cafe ->
-                            ListItem(
-                                headlineContent = { Text(cafe.name) },
-                                supportingContent = { Text(cafe.address) },
-                                trailingContent = { 
-                                    Text(
-                                        text = "⭐ ${cafe.rating}",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                },
-                                modifier = Modifier.clickable {
-                                    selectedCafe = cafe
-                                    showSearchResults = false
-                                    searchQuery = ""
-                                    
-                                    // Animate camera to cafe location
-                                    mapView?.getMapboxMap()?.setCamera(
-                                        CameraOptions.Builder()
-                                            .center(Point.fromLngLat(cafe.longitude, cafe.latitude))
-                                            .zoom(15.0)
-                                            .build()
-                                    )
-                                }
-                            )
-                            if (cafe != filteredCafes.last()) {
+                        // Show Mapbox Search Suggestions
+                        if (searchSuggestions.isNotEmpty()) {
+                            item {
+                                ListItem(
+                                    headlineContent = { 
+                                        Text(
+                                            "Mapbox Search Results",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Icons.Default.Public,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                )
                                 Divider()
+                            }
+                            
+                            items(searchSuggestions.take(5)) { suggestion ->
+                                val coroutineScope = rememberCoroutineScope()
+                                
+                                ListItem(
+                                    headlineContent = { Text(suggestion.name) },
+                                    supportingContent = { 
+                                        Text(suggestion.formattedAddress ?: "No address available")
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Icons.Default.LocationOn,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        coroutineScope.launch {
+                                            try {
+                                                // Select the suggestion to get full details
+                                                val result = placeAutocomplete.select(suggestion)
+                                                result.onValue { placeResult ->
+                                                    Log.i("MapScreen", "Selected place: ${placeResult.name}")
+                                                    
+                                                    // Move camera to selected location
+                                                    placeResult.coordinate?.let { coordinate ->
+                                                        mapView?.mapboxMap?.setCamera(
+                                                            CameraOptions.Builder()
+                                                                .center(coordinate)
+                                                                .zoom(16.0)
+                                                                .build()
+                                                        )
+                                                    }
+                                                    
+                                                    showSearchResults = false
+                                                    searchQuery = placeResult.name
+                                                }
+                                                result.onError { error ->
+                                                    Log.e("MapScreen", "Error selecting suggestion", error)
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e("MapScreen", "Exception selecting suggestion", e)
+                                            }
+                                        }
+                                    }
+                                )
+                                if (suggestion != searchSuggestions.take(5).last()) {
+                                    Divider()
+                                }
+                            }
+                            
+                            if (filteredCafes.isNotEmpty()) {
+                                item {
+                                    Divider(thickness = 2.dp, modifier = Modifier.padding(vertical = 4.dp))
+                                }
+                            }
+                        }
+                        
+                        // Show Local Cafes
+                        if (filteredCafes.isNotEmpty()) {
+                            item {
+                                ListItem(
+                                    headlineContent = { 
+                                        Text(
+                                            "Saved Cafes",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Icons.Default.Coffee,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                )
+                                Divider()
+                            }
+                            
+                            items(filteredCafes) { cafe ->
+                                ListItem(
+                                    headlineContent = { Text(cafe.name) },
+                                    supportingContent = { Text(cafe.address) },
+                                    trailingContent = { 
+                                        Text(
+                                            text = "⭐ ${cafe.rating}",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        selectedCafe = cafe
+                                        showSearchResults = false
+                                        searchQuery = ""
+                                        
+                                        // Animate camera to cafe location
+                                        mapView?.mapboxMap?.setCamera(
+                                            CameraOptions.Builder()
+                                                .center(Point.fromLngLat(cafe.longitude, cafe.latitude))
+                                                .zoom(15.0)
+                                                .build()
+                                        )
+                                    }
+                                )
+                                if (cafe != filteredCafes.last()) {
+                                    Divider()
+                                }
+                            }
+                        }
+                        
+                        // Show loading or no results
+                        if (isSearching) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        } else if (searchSuggestions.isEmpty() && filteredCafes.isEmpty() && searchQuery.isNotEmpty()) {
+                            item {
+                                ListItem(
+                                    headlineContent = { Text("No results found") },
+                                    supportingContent = { Text("Try a different search term") },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Icons.Default.SearchOff,
+                                            contentDescription = null
+                                        )
+                                    }
+                                )
                             }
                         }
                     }
@@ -292,7 +467,7 @@ fun MapScreen(
                 FloatingActionButton(
                     onClick = {
                         userLocation?.let { location ->
-                            mapView?.getMapboxMap()?.setCamera(
+                            mapView?.mapboxMap?.setCamera(
                                 CameraOptions.Builder()
                                     .center(Point.fromLngLat(location.longitude, location.latitude))
                                     .zoom(15.0)
@@ -359,7 +534,7 @@ fun MapScreen(
                                 selectedCafe = null
                                 // Clear route when closing bottom sheet
                                 if (isShowingRoute) {
-                                    mapView?.getMapboxMap()?.getStyle { style ->
+                                    mapView?.mapboxMap?.getStyle { style ->
                                         clearRouteFromMap(style)
                                     }
                                     currentRoute = null
@@ -389,7 +564,7 @@ fun MapScreen(
                                         currentRoute = route
                                         
                                         // Draw route on map
-                                        mapView?.getMapboxMap()?.getStyle { style ->
+                                        mapView?.mapboxMap?.getStyle { style ->
                                             drawRouteOnMap(
                                                 style = style,
                                                 route = route,
@@ -540,7 +715,7 @@ fun MapScreen(
                         OutlinedButton(
                             onClick = {
                                 // Clear route from map
-                                mapView?.getMapboxMap()?.getStyle { style ->
+                                mapView?.mapboxMap?.getStyle { style ->
                                     clearRouteFromMap(style)
                                 }
                                 currentRoute = null
@@ -787,7 +962,7 @@ private fun zoomToRoute(mapView: MapView, coordinates: List<Point>) {
         }
         
         // Animate camera to show route
-        mapView.getMapboxMap().setCamera(
+        mapView.mapboxMap.setCamera(
             CameraOptions.Builder()
                 .center(Point.fromLngLat(centerLng, centerLat))
                 .zoom(zoom)
