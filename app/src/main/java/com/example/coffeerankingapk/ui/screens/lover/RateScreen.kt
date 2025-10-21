@@ -1,22 +1,48 @@
 package com.example.coffeerankingapk.ui.screens.lover
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +53,10 @@ import com.example.coffeerankingapk.data.MockData
 import com.example.coffeerankingapk.ui.components.AppCard
 import com.example.coffeerankingapk.ui.components.InteractiveRatingStars
 import com.example.coffeerankingapk.ui.components.PrimaryButton
-import com.example.coffeerankingapk.ui.theme.*
+import com.example.coffeerankingapk.ui.theme.BgCream
+import com.example.coffeerankingapk.ui.theme.PrimaryBrown
+import com.example.coffeerankingapk.ui.theme.Success
+import com.example.coffeerankingapk.ui.theme.TextMuted
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,9 +64,14 @@ fun RateScreen(
     cafeId: String,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val showToast: (String) -> Unit = { message ->
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
     var selectedRating by remember { mutableStateOf(5) }
     var reviewText by remember { mutableStateOf("") }
     var selectedQuickComment by remember { mutableStateOf<String?>(null) }
+    var isCoffeeHot by remember { mutableStateOf<Boolean?>(null) }
     
     // Mock cafe data
     val cafe = MockData.cafes.find { it.id == cafeId } ?: MockData.cafes.first()
@@ -82,7 +116,7 @@ fun RateScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
+                            model = ImageRequest.Builder(context)
                                 .data(cafe.imageUrl)
                                 .crossfade(true)
                                 .build(),
@@ -149,7 +183,10 @@ fun RateScreen(
                 ) {
                     InteractiveRatingStars(
                         currentRating = selectedRating,
-                        onRatingChanged = { selectedRating = it }
+                        onRatingChanged = { rating ->
+                            selectedRating = rating
+                            showToast("Rated ${cafe.name} $rating stars")
+                        }
                     )
                 }
             }
@@ -172,29 +209,37 @@ fun RateScreen(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            val yesSelected = isCoffeeHot == true
+                            val noSelected = isCoffeeHot == false
                             Text(
                                 text = "Yes",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Success,
+                                color = if (yesSelected) Color.White else Success,
                                 modifier = Modifier
                                     .background(
-                                        Success.copy(alpha = 0.1f),
+                                        if (yesSelected) Success else Success.copy(alpha = 0.1f),
                                         RoundedCornerShape(16.dp)
                                     )
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clickable { /* Handle yes */ }
+                                    .clickable {
+                                        isCoffeeHot = true
+                                        showToast("Noted — the coffee was hot!")
+                                    }
                             )
                             Text(
                                 text = "No",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextMuted,
+                                color = if (noSelected) Color.White else TextMuted,
                                 modifier = Modifier
                                     .background(
-                                        Color.Gray.copy(alpha = 0.1f),
+                                        if (noSelected) PrimaryBrown else Color.Gray.copy(alpha = 0.1f),
                                         RoundedCornerShape(16.dp)
                                     )
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clickable { /* Handle no */ }
+                                    .clickable {
+                                        isCoffeeHot = false
+                                        showToast("Thanks, we'll help the cafe improve")
+                                    }
                             )
                         }
                     }
@@ -229,6 +274,12 @@ fun RateScreen(
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                                 .clickable { 
                                     selectedQuickComment = if (isSelected) null else comment
+                                    val message = if (isSelected) {
+                                        "Removed quick comment"
+                                    } else {
+                                        "Selected \"$comment\""
+                                    }
+                                    showToast(message)
                                 }
                         )
                     }
@@ -253,13 +304,17 @@ fun RateScreen(
                     PhotoOptionCard(
                         icon = Icons.Default.Add,
                         title = "Camera",
-                        onClick = { /* Open camera */ },
+                        onClick = {
+                            showToast("Camera upload coming soon")
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     PhotoOptionCard(
                         icon = Icons.Default.Settings,
                         title = "Gallery",
-                        onClick = { /* Open gallery */ },
+                        onClick = {
+                            showToast("Gallery picker coming soon")
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -299,7 +354,8 @@ fun RateScreen(
                 PrimaryButton(
                     text = "Submit Rating",
                     onClick = {
-                        // TODO: Submit rating logic
+                        val quickNote = selectedQuickComment ?: "No quick comment"
+                        showToast("Submitted $selectedRating★ with note: $quickNote")
                         onNavigateBack()
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -308,7 +364,9 @@ fun RateScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 OutlinedButton(
-                    onClick = { /* Save draft */ },
+                    onClick = {
+                        showToast("Draft saved locally")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = PrimaryBrown
@@ -326,7 +384,7 @@ fun RateScreen(
 
 @Composable
 private fun PhotoOptionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier

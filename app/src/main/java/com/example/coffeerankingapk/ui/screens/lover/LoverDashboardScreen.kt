@@ -1,12 +1,25 @@
 package com.example.coffeerankingapk.ui.screens.lover
 
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
@@ -14,25 +27,35 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.coffeerankingapk.data.MockData
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.clickable
 import com.example.coffeerankingapk.ui.components.AppCard
-import com.example.coffeerankingapk.ui.components.CafeListItem
-import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.components.RatingStars
-import com.example.coffeerankingapk.ui.theme.*
+import com.example.coffeerankingapk.ui.theme.BgCream
+import com.example.coffeerankingapk.ui.theme.Danger
+import com.example.coffeerankingapk.ui.theme.PrimaryBrown
+import com.example.coffeerankingapk.ui.theme.Success
+import com.example.coffeerankingapk.ui.theme.TextMuted
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +64,11 @@ fun LoverDashboardScreen(
     onSearchClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    fun showToast(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
     val nearbycafes = MockData.cafes.take(3)
     val topRatedCafes = MockData.cafes.sortedByDescending { it.rating }.take(3)
     val recentlyVisited = MockData.cafes.take(2)
@@ -99,7 +127,12 @@ fun LoverDashboardScreen(
                         }
                     }
                     
-                    IconButton(onClick = onNotificationClick) {
+                    IconButton(
+                        onClick = {
+                            showToast("Notifications are coming soon")
+                            onNotificationClick()
+                        }
+                    ) {
                         Icon(
                             Icons.Default.Notifications,
                             contentDescription = "Notifications",
@@ -170,7 +203,11 @@ fun LoverDashboardScreen(
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     },
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .clickable {
+                            showToast("Launching search soon")
+                            onSearchClick()
+                        },
                     readOnly = true,
                     enabled = false,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -236,7 +273,11 @@ fun LoverDashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { /* View all activity */ }) {
+                        TextButton(
+                            onClick = {
+                                showToast("Viewing all activity soon")
+                            }
+                        ) {
                             Text("View All", color = PrimaryBrown)
                         }
                     }
@@ -307,7 +348,11 @@ fun LoverDashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { /* See all */ }) {
+                        TextButton(
+                            onClick = {
+                                showToast("See all top-rated cafes coming soon")
+                            }
+                        ) {
                             Text("See All", color = PrimaryBrown)
                         }
                     }
@@ -362,7 +407,9 @@ fun LoverDashboardScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     OutlinedButton(
-                        onClick = { },
+                        onClick = {
+                            showToast("Opening your reviews soon")
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = PrimaryBrown

@@ -1,7 +1,9 @@
 package com.example.coffeerankingapk.ui.screens.lover
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,15 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -38,13 +37,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.coffeerankingapk.data.Cafe
+import com.example.coffeerankingapk.data.MockData
 import com.example.coffeerankingapk.ui.components.AppCard
-import com.example.coffeerankingapk.ui.components.InteractiveRatingStars
 import com.example.coffeerankingapk.ui.components.OutlineButton
 import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.components.RatingStars
 import com.example.coffeerankingapk.ui.theme.BgCream
 import com.example.coffeerankingapk.ui.theme.TextMuted
+import com.example.coffeerankingapk.ui.navigation.TurnByTurnNavigationActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,31 +54,33 @@ fun CafeDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToRate: () -> Unit = {}
 ) {
-    var showRatingDialog by remember { mutableStateOf(false) }
-    
-    // Mock cafe data based on ID
+    val context = LocalContext.current
+    var isSaved by remember { mutableStateOf(false) }
+
     val cafe = remember(cafeId) {
+        MockData.cafes.find { it.id == cafeId } ?: Cafe(
+            id = cafeId,
+            name = "Sample Cafe",
+            description = "Handcrafted beverages and cozy seating",
+            address = "Location coming soon",
+            rating = 4.5f,
+            imageUrl = "https://via.placeholder.com/400x300/6B3E2A/FFFFFF?text=Cafe",
+            latitude = 0.0,
+            longitude = 0.0
+        )
+    }
+    val reviews = remember(cafeId) {
         when (cafeId) {
-            "1" -> CafeDetailData(
-                id = "1",
-                name = "The Roasted Bean",
-                rating = 4.6f,
-                distance = "0.3 miles",
-                imageUrl = "https://via.placeholder.com/400x300/8B4513/FFFFFF?text=Cafe+1",
-                reviews = listOf(
-                    ReviewData("Alice", 5, "Amazing coffee!", "2 days ago"),
-                    ReviewData("Bob", 4, "Great atmosphere", "3 days ago"),
-                    ReviewData("Carol", 5, "Best latte ever!", "1 week ago")
-                )
+            "1" -> listOf(
+                ReviewData("Alice", 5, "Amazing coffee!", "2 days ago"),
+                ReviewData("Bob", 4, "Great atmosphere", "3 days ago"),
+                ReviewData("Carol", 5, "Best latte ever!", "1 week ago")
             )
-            else -> CafeDetailData(
-                id = cafeId,
-                name = "Sample Cafe",
-                rating = 4.5f,
-                distance = "0.5 miles",
-                imageUrl = "https://via.placeholder.com/400x300/6B3E2A/FFFFFF?text=Cafe",
-                reviews = emptyList()
+            "2" -> listOf(
+                ReviewData("Devon", 5, "Single-origin beans were incredible.", "4 days ago"),
+                ReviewData("Priya", 4, "Loved the pour-over recommendations!", "6 days ago")
             )
+            else -> emptyList()
         }
     }
     
@@ -92,7 +95,11 @@ fun CafeDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Share functionality */ }) {
+                    IconButton(
+                        onClick = {
+                            shareCafe(context = context, cafe = cafe)
+                        }
+                    ) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
                     }
                 },
@@ -135,6 +142,16 @@ fun CafeDetailScreen(
                         text = cafe.name,
                         style = MaterialTheme.typography.headlineLarge
                     )
+                    Text(
+                        text = cafe.address,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted
+                    )
+                    Text(
+                        text = cafe.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -142,7 +159,7 @@ fun CafeDetailScreen(
                     ) {
                         RatingStars(rating = cafe.rating)
                         Text(
-                            text = cafe.distance,
+                            text = "Lat: ${String.format("%.4f", cafe.latitude)}, Lng: ${String.format("%.4f", cafe.longitude)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextMuted
                         )
@@ -152,47 +169,72 @@ fun CafeDetailScreen(
             
             // Action row
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    PrimaryButton(
-                        text = "Rate",
-                        onClick = onNavigateToRate,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        PrimaryButton(
+                            text = "Rate",
+                            onClick = onNavigateToRate,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlineButton(
+                            text = "Start navigation",
+                            onClick = {
+                                startTurnByTurnNavigation(context = context, cafe = cafe)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlineButton(
+                            text = "Claim reward",
+                            onClick = {
+                                Toast.makeText(
+                                    context,
+                                    "Reward claimed! Check your rewards wallet for details.",
+                                    Toast.LENGTH_LONG
+                                ).show() // Toast shown while CafeDetailScreen is hosted by MainActivity.
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlineButton(
+                            text = "Share cafe",
+                            onClick = {
+                                shareCafe(context = context, cafe = cafe)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
                     OutlineButton(
-                        text = "Claim reward",
-                        onClick = { /* TODO: Claim reward */ },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlineButton(
-                        text = "Share cafe",
-                        onClick = { /* TODO: Share */ },
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    OutlineButton(
-                        text = "Save",
-                        onClick = { /* TODO: Save to favorites */ },
-                        modifier = Modifier.weight(1f)
+                        text = if (isSaved) "Saved to favorites" else "Save to favorites",
+                        onClick = {
+                            isSaved = !isSaved
+                            val message = if (isSaved) {
+                                "Added ${cafe.name} to your favorites."
+                            } else {
+                                "Removed ${cafe.name} from favorites."
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
             
             // Reviews section
-            if (cafe.reviews.isNotEmpty()) {
+            if (reviews.isNotEmpty()) {
                 item {
                     Text(
                         text = "Reviews",
@@ -201,7 +243,7 @@ fun CafeDetailScreen(
                     )
                 }
                 
-                items(cafe.reviews) { review ->
+                items(reviews) { review ->
                     ReviewCard(
                         review = review,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -209,16 +251,6 @@ fun CafeDetailScreen(
                 }
             }
         }
-    }
-    
-    if (showRatingDialog) {
-        RatingDialog(
-            onDismiss = { showRatingDialog = false },
-            onSubmit = { rating, comment ->
-                // TODO: Submit rating
-                showRatingDialog = false
-            }
-        )
     }
 }
 
@@ -263,63 +295,39 @@ private fun ReviewCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RatingDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (Int, String) -> Unit
-) {
-    var selectedRating by remember { mutableStateOf(5) }
-    var comment by remember { mutableStateOf("") }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rate this cafe") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    InteractiveRatingStars(
-                        currentRating = selectedRating,
-                        onRatingChanged = { selectedRating = it }
-                    )
-                }
-                
-                OutlinedTextField(
-                    value = comment,
-                    onValueChange = { comment = it },
-                    label = { Text("Comment (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-            }
-        },
-        confirmButton = {
-            PrimaryButton(
-                text = "Submit",
-                onClick = { onSubmit(selectedRating, comment) }
-            )
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
+private fun shareCafe(context: android.content.Context, cafe: Cafe) {
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, cafe.name)
+        putExtra(
+            Intent.EXTRA_TEXT,
+            "Let's grab a drink at ${cafe.name}! ${cafe.address}."
+        )
+    }
+    val chooser = Intent.createChooser(shareIntent, "Share cafe")
+    runCatching {
+        context.startActivity(chooser)
+    }.onFailure {
+        Toast.makeText(context, "No app available to share this cafe.", Toast.LENGTH_SHORT).show()
+    }
 }
 
-private data class CafeDetailData(
-    val id: String,
-    val name: String,
-    val rating: Float,
-    val distance: String,
-    val imageUrl: String,
-    val reviews: List<ReviewData>
-)
+private fun startTurnByTurnNavigation(context: android.content.Context, cafe: Cafe) {
+    if (cafe.latitude == 0.0 && cafe.longitude == 0.0) {
+        Toast.makeText(context, "Navigation is not available for this cafe yet.", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val intent = TurnByTurnNavigationActivity.createIntent(
+        context,
+        cafe.latitude,
+        cafe.longitude
+    )
+    try {
+        context.startActivity(intent)
+    } catch (error: ActivityNotFoundException) {
+        Toast.makeText(context, "Navigation feature is currently unavailable.", Toast.LENGTH_SHORT).show()
+    }
+}
 
 private data class ReviewData(
     val userName: String,
