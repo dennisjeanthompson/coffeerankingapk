@@ -21,14 +21,18 @@ import java.util.Locale
 @Composable
 fun CouponCard(
     title: String,
+    description: String,
     discountPercent: Int,
-    expiryDate: Date,
+    expiryDate: Date?,
     isExpired: Boolean = false,
-    onRedeemClick: (() -> Unit)? = null,
+    isActive: Boolean = true,
+    actionText: String? = null,
+    onActionClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    
+    val expiryLabel = expiryDate?.let { dateFormat.format(it) } ?: "No expiry"
+
     AppCard(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -36,7 +40,7 @@ fun CouponCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -48,33 +52,53 @@ fun CouponCard(
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 Text(
                     text = "${discountPercent}% OFF",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = if (isExpired) Danger else Success
+                    color = when {
+                        isExpired -> Danger
+                        isActive -> Success
+                        else -> TextMuted
+                    }
                 )
             }
-            
-            Text(
-                text = "Expires: ${dateFormat.format(expiryDate)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isExpired) Danger else TextMuted
-            )
-            
-            if (!isExpired && onRedeemClick != null) {
-                PrimaryButton(
-                    text = "Redeem",
-                    onClick = onRedeemClick,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else if (isExpired) {
+
+            if (description.isNotBlank()) {
                 Text(
-                    text = "Expired",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Danger,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextMuted
                 )
+            }
+
+            Text(
+                text = "Expires: $expiryLabel",
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    isExpired -> Danger
+                    !isActive -> TextMuted
+                    else -> TextMuted
+                }
+            )
+
+            when {
+                isExpired || !isActive -> {
+                    val statusText = if (isExpired) "Expired" else "Inactive"
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isExpired) Danger else TextMuted,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+                actionText != null && onActionClick != null -> {
+                    PrimaryButton(
+                        text = actionText,
+                        onClick = onActionClick,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

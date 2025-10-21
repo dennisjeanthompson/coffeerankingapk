@@ -2,6 +2,9 @@ package com.example.coffeerankingapk.data.firebase
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.coffeerankingapk.data.fake.FakeAuthRepository
+import com.example.coffeerankingapk.data.fake.FakeCafeRepository
+import com.example.coffeerankingapk.data.fake.FakeOwnerRepository
 import com.example.coffeerankingapk.data.repository.AuthRepository
 import com.example.coffeerankingapk.data.repository.CafeRepository
 import com.example.coffeerankingapk.data.repository.OwnerRepository
@@ -19,20 +22,29 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 object ServiceLocator {
 
+    private const val USE_FAKE_BACKEND = true
+
     private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
+    private val fakeAuthRepository by lazy { FakeAuthRepository() }
+    private val fakeCafeRepository by lazy { FakeCafeRepository() }
+    private val fakeOwnerRepository by lazy { FakeOwnerRepository() }
+
     val authRepository: AuthRepository by lazy {
-        FirebaseAuthRepository(firebaseAuth, firestore)
+        if (USE_FAKE_BACKEND) fakeAuthRepository else FirebaseAuthRepository(firebaseAuth, firestore)
     }
 
     val cafeRepository: CafeRepository by lazy {
-        FirebaseCafeRepository(firebaseAuth, firestore)
+        if (USE_FAKE_BACKEND) fakeCafeRepository else FirebaseCafeRepository(firebaseAuth, firestore)
     }
 
     val ownerRepository: OwnerRepository by lazy {
-        FirebaseOwnerRepository(firebaseAuth, firestore)
+        if (USE_FAKE_BACKEND) fakeOwnerRepository else FirebaseOwnerRepository(firebaseAuth, firestore)
     }
+
+    val isUsingFirebaseBackend: Boolean
+        get() = !USE_FAKE_BACKEND
 
     fun provideDefaultViewModelFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

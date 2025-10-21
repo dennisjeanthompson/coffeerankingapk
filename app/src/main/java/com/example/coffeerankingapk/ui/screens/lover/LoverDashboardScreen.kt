@@ -21,10 +21,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ButtonDefaults
@@ -40,6 +43,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,37 +56,64 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.coffeerankingapk.data.MockData
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.coffeerankingapk.data.firebase.ServiceLocator
+import com.example.coffeerankingapk.data.model.Cafe
 import com.example.coffeerankingapk.ui.components.AppCard
+import com.example.coffeerankingapk.ui.components.CafeListItem
 import com.example.coffeerankingapk.ui.components.RatingStars
 import com.example.coffeerankingapk.ui.theme.BgCream
 import com.example.coffeerankingapk.ui.theme.Danger
 import com.example.coffeerankingapk.ui.theme.PrimaryBrown
 import com.example.coffeerankingapk.ui.theme.Success
 import com.example.coffeerankingapk.ui.theme.TextMuted
+import com.example.coffeerankingapk.ui.viewmodel.LoverDashboardViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoverDashboardScreen(
     onCafeClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    viewModel: LoverDashboardViewModel = viewModel(factory = ServiceLocator.provideDefaultViewModelFactory())
 ) {
     val context = LocalContext.current
-    fun showToast(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    val uiState by viewModel.uiState.collectAsState()
+    val showToast: (String) -> Unit = remember(context) {
+        { message -> Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     }
 
-    val nearbycafes = MockData.cafes.take(3)
-    val topRatedCafes = MockData.cafes.sortedByDescending { it.rating }.take(3)
-    val recentlyVisited = MockData.cafes.take(2)
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { showToast(it) }
+    }
+
+    val recommendedCafes = remember(uiState.cafes) { uiState.cafes.take(3) }
+    val topRatedCafes = remember(uiState.cafes) { uiState.cafes.sortedByDescending { it.rating }.take(5) }
+    val favoriteCafes = remember(uiState.cafes, uiState.favorites) {
+        uiState.cafes.filter { uiState.favorites.contains(it.id) }.take(3)
+    }
+
+    val rankDisplay = remember(uiState.rank) { uiState.rank.ifBlank { "#—" } }
+    val pointsDisplay = remember(uiState.points) {
+        if (uiState.points > 0) String.format(Locale.getDefault(), "%,d", uiState.points) else "--"
+    }
+    val reviewsDisplay = remember(uiState.reviewsCount) {
+        if (uiState.reviewsCount > 0) uiState.reviewsCount.toString() else "--"
+    }
+    val favoritesDisplay = remember(uiState.favoritesCount, uiState.favorites) {
+        when {
+            uiState.favoritesCount > 0 -> uiState.favoritesCount.toString()
+            uiState.favorites.isNotEmpty() -> uiState.favorites.size.toString()
+            else -> "--"
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgCream)
     ) {
-        // Enhanced Header with user profile card
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = PrimaryBrown,
@@ -96,7 +131,6 @@ fun LoverDashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Profile picture placeholder
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -111,10 +145,10 @@ fun LoverDashboardScreen(
                                 tint = Color.White
                             )
                         }
-                        
+
                         Column {
                             Text(
-                                text = "Sarah Chen",
+                                text = uiState.userName.ifBlank { "Coffee Lover" },
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -126,24 +160,37 @@ fun LoverDashboardScreen(
                             )
                         }
                     }
-                    
-                    IconButton(
-                        onClick = {
-                            showToast("Notifications are coming soon")
-                            onNotificationClick()
+
+                    Row {
+                        IconButton(
+                            onClick = {
+                                viewModel.refresh()
+                                showToast("Refreshing your feed")
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = Color.White
+                            )
                         }
-                    ) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = Color.White
-                        )
+                        IconButton(
+                            onClick = {
+                                showToast("Notifications are coming soon")
+                                onNotificationClick()
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // User stats row
+
                 AppCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -154,47 +201,56 @@ fun LoverDashboardScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         StatItem(
-                            title = "Your Rank",
-                            value = "#127",
-                            color = PrimaryBrown
+                            title = "Rank",
+                            value = rankDisplay,
+                            color = Color.White
                         )
                         Divider(
                             modifier = Modifier
                                 .height(40.dp)
                                 .width(1.dp),
-                            color = Color.Gray.copy(alpha = 0.3f)
+                            color = Color.White.copy(alpha = 0.2f)
                         )
                         StatItem(
                             title = "Points",
-                            value = "2,847",
+                            value = pointsDisplay,
                             color = Success
+                        )
+                        Divider(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(1.dp),
+                            color = Color.White.copy(alpha = 0.2f)
+                        )
+                        StatItem(
+                            title = "Reviews",
+                            value = reviewsDisplay,
+                            color = Color.White
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
-                // Location row
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = "Location",
-                        tint = TextMuted,
+                        tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Downtown, New York",
+                        text = "Discovering new cafes near you",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // Search bar
+
                 OutlinedTextField(
                     value = "",
                     onValueChange = { },
@@ -211,32 +267,37 @@ fun LoverDashboardScreen(
                     readOnly = true,
                     enabled = false,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryBrown,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        disabledBorderColor = Color.Gray.copy(alpha = 0.3f)
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.4f),
+                        disabledBorderColor = Color.White.copy(alpha = 0.4f)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
             }
         }
-        
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Recent Activity Section (matching mockup)
-            item {
-                Column {
-                    Text(
-                        text = "Recent Activity",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
+
+        if (uiState.isLoading && uiState.cafes.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(color = PrimaryBrown)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                item {
+                    SectionHeader(
+                        title = "Recent Activity",
+                        actionLabel = "View All",
+                        onActionClick = { showToast("Activity timeline coming soon") }
                     )
-                    
                     Spacer(modifier = Modifier.height(12.dp))
-                    
                     AppCard {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -244,133 +305,159 @@ fun LoverDashboardScreen(
                         ) {
                             ActivityItem(
                                 icon = Icons.Default.Star,
-                                title = "Rated Ethiopian Yirgacheffe",
-                                subtitle = "⭐⭐⭐⭐⭐ 2h ago",
+                                title = "You have $reviewsDisplay reviews",
+                                subtitle = "Share more ratings to climb the leaderboard",
                                 backgroundColor = Success.copy(alpha = 0.1f)
                             )
-                            
                             Divider(color = Color.Gray.copy(alpha = 0.2f))
-                            
-                            ActivityItem(
-                                icon = Icons.Default.Star,
-                                title = "Earned 'Coffee Connoisseur' Badge",
-                                subtitle = "🏆 5h ago",
-                                backgroundColor = Success.copy(alpha = 0.1f)
-                            )
-                            
-                            Divider(color = Color.Gray.copy(alpha = 0.2f))
-                            
                             ActivityItem(
                                 icon = Icons.Default.Favorite,
-                                title = "Added Blue Mountain to Favorites",
-                                subtitle = "❤️ 1d ago",
+                                title = "${favoritesDisplay.takeIf { it != "--" } ?: "No"} favorite cafes",
+                                subtitle = "Tap the heart icon to curate your list",
                                 backgroundColor = Danger.copy(alpha = 0.1f)
                             )
-                        }
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = {
-                                showToast("Viewing all activity soon")
-                            }
-                        ) {
-                            Text("View All", color = PrimaryBrown)
+                            Divider(color = Color.Gray.copy(alpha = 0.2f))
+                            ActivityItem(
+                                icon = Icons.Default.AutoAwesome,
+                                title = "${pointsDisplay.takeIf { it != "--" } ?: "Earn"} coffee points",
+                                subtitle = "Redeem rewards after every visit",
+                                backgroundColor = PrimaryBrown.copy(alpha = 0.1f)
+                            )
                         }
                     }
                 }
-            }
-            
-            // Your Top Rated Section (matching mockup)
-            item {
-                Column {
-                    Text(
-                        text = "Your Top Rated",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(listOf(
-                            TopRatedItem("Ethiopian Yirgacheffe", 5.0f),
-                            TopRatedItem("Blue Mountain", 4.8f), 
-                            TopRatedItem("Colon Supreme", 4.5f)
-                        )) { item ->
-                            AppCard(
-                                modifier = Modifier.width(120.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(60.dp)
-                                            .background(
-                                                PrimaryBrown.copy(alpha = 0.1f),
-                                                RoundedCornerShape(8.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "☕",
-                                            style = MaterialTheme.typography.headlineMedium
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = PrimaryBrown,
-                                        maxLines = 2
-                                    )
-                                    
-                                    RatingStars(
-                                        rating = item.rating,
-                                        showNumeric = false
+
+                if (recommendedCafes.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Recommended For You",
+                            actionLabel = "View All",
+                            onActionClick = { showToast("Full cafe list coming soon") }
+                        )
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            recommendedCafes.forEach { cafe ->
+                                key(cafe.id) {
+                                    CafeListItem(
+                                        cafe = cafe,
+                                        onClick = { onCafeClick(cafe.id) },
+                                        isFavorite = uiState.favorites.contains(cafe.id),
+                                        onFavoriteClick = {
+                                            val isFavorite = uiState.favorites.contains(cafe.id)
+                                            viewModel.toggleFavorite(cafe.id)
+                                            val message = if (isFavorite) {
+                                                "Removed ${cafe.name} from favorites"
+                                            } else {
+                                                "Added ${cafe.name} to favorites"
+                                            }
+                                            showToast(message)
+                                        }
                                     )
                                 }
                             }
                         }
                     }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = {
-                                showToast("See all top-rated cafes coming soon")
-                            }
+                }
+
+                if (topRatedCafes.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Top Rated Sips",
+                            actionLabel = "See All",
+                            onActionClick = { showToast("Top rated list coming soon") }
+                        )
+                    }
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text("See All", color = PrimaryBrown)
+                            items(topRatedCafes, key = { it.id }) { cafe ->
+                                TopRatedCafeCard(
+                                    cafe = cafe,
+                                    isFavorite = uiState.favorites.contains(cafe.id),
+                                    onClick = { onCafeClick(cafe.id) },
+                                    onFavoriteClick = {
+                                        val isFavorite = uiState.favorites.contains(cafe.id)
+                                        viewModel.toggleFavorite(cafe.id)
+                                        val message = if (isFavorite) {
+                                            "Removed ${cafe.name} from favorites"
+                                        } else {
+                                            "Added ${cafe.name} to favorites"
+                                        }
+                                        showToast(message)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-            }
-            
-            // Recent Achievements (matching mockup)
-            item {
-                Column {
-                    Text(
-                        text = "Recent Achievements",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
+
+                if (favoriteCafes.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Saved Cafes",
+                            actionLabel = "Manage",
+                            onActionClick = { showToast("Favorites management coming soon") }
+                        )
+                    }
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            favoriteCafes.forEach { cafe ->
+                                key("favorite-${cafe.id}") {
+                                    CafeListItem(
+                                        cafe = cafe,
+                                        onClick = { onCafeClick(cafe.id) },
+                                        isFavorite = true,
+                                        onFavoriteClick = {
+                                            viewModel.toggleFavorite(cafe.id)
+                                            showToast("Removed ${cafe.name} from favorites")
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    SectionHeader(title = "Quick Actions")
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                showToast("Review history coming soon")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBrown)
+                        ) {
+                            Text("My Reviews")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                showToast("Rewards wallet coming soon")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBrown)
+                        ) {
+                            Text("Rewards Wallet")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                showToast("New cafe suggestions coming soon")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBrown)
+                        ) {
+                            Text("Discover New Cafes")
+                        }
+                    }
+                }
+
+                item {
+                    SectionHeader(title = "Recent Achievements")
+                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -381,43 +468,55 @@ fun LoverDashboardScreen(
                             modifier = Modifier.weight(1f)
                         )
                         AchievementBadge(
-                            title = "Savings Warrior", 
+                            title = "Savings Star",
                             icon = "💰",
                             modifier = Modifier.weight(1f)
                         )
                         AchievementBadge(
-                            title = "Streak Hero",
+                            title = "Loyalty Streak",
                             icon = "🔥",
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
-            }
-            
-            // Quick Actions
-            item {
-                Column {
-                    Text(
-                        text = "Quick Actions",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    OutlinedButton(
-                        onClick = {
-                            showToast("Opening your reviews soon")
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = PrimaryBrown
-                        )
-                    ) {
-                        Text("My Reviews")
+
+                uiState.errorMessage?.let { error ->
+                    item {
+                        AppCard {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = PrimaryBrown
+        )
+        if (actionLabel != null && onActionClick != null) {
+            TextButton(onClick = onActionClick) {
+                Text(actionLabel, color = PrimaryBrown)
             }
         }
     }
@@ -436,21 +535,21 @@ private fun StatItem(
     ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = color
         )
         Text(
             text = title,
             style = MaterialTheme.typography.bodySmall,
-            color = TextMuted
+            color = Color.White.copy(alpha = 0.7f)
         )
     }
 }
 
 @Composable
 private fun ActivityItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     subtitle: String,
     backgroundColor: Color,
@@ -474,7 +573,7 @@ private fun ActivityItem(
                 modifier = Modifier.size(20.dp)
             )
         }
-        
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -487,6 +586,68 @@ private fun ActivityItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted
             )
+        }
+    }
+}
+
+@Composable
+private fun TopRatedCafeCard(
+    cafe: Cafe,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppCard(
+        modifier = modifier
+            .width(180.dp)
+            .clickable { onClick() }
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(PrimaryBrown.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "☕",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+
+            Text(
+                text = cafe.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryBrown,
+                maxLines = 2
+            )
+
+            RatingStars(rating = cafe.rating.toFloat(), showNumeric = true)
+
+            Text(
+                text = "${cafe.reviewCount} reviews",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted
+            )
+
+            OutlinedButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBrown)
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (isFavorite) "Saved" else "Save")
+            }
         }
     }
 }
@@ -515,9 +676,9 @@ private fun AchievementBadge(
                     style = MaterialTheme.typography.headlineMedium
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
@@ -527,8 +688,3 @@ private fun AchievementBadge(
         }
     }
 }
-
-private data class TopRatedItem(
-    val name: String,
-    val rating: Float
-)

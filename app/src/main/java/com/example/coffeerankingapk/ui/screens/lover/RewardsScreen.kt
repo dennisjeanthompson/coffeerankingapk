@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.coffeerankingapk.ui.components.AppCard
-import com.example.coffeerankingapk.ui.components.CouponCard
 import com.example.coffeerankingapk.ui.theme.*
 import java.util.Calendar
 import java.util.Date

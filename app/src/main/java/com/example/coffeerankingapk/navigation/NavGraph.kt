@@ -4,37 +4,25 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
-import com.example.coffeerankingapk.ui.screens.AuthScreen
-import com.example.coffeerankingapk.ui.screens.RoleSelectScreen
-import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.MapScreen
 import com.example.coffeerankingapk.ui.screens.lover.RateScreen
 import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
+import com.example.coffeerankingapk.ui.screens.AuthScreen
+import com.example.coffeerankingapk.ui.screens.RoleSelectScreen
+import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String = "auth"
+    startDestination: String = "role_select"
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        // Auth flow
-        composable("auth") {
-            AuthScreen(
-                onLoginSuccess = {
-                    navController.navigate("role_select") {
-                        popUpTo("auth") { inclusive = true }
-                    }
-                }
-            )
-        }
-        
         composable("role_select") {
             RoleSelectScreen(
                 onOwnerSelected = {
@@ -54,7 +42,7 @@ fun NavGraph(
         composable("owner") {
             OwnerMainScreen(
                 onLogout = {
-                    navController.navigate("auth") {
+                    navController.navigate("role_select") {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -71,8 +59,19 @@ fun NavGraph(
                     // Rewards is handled within LoverMainScreen
                 },
                 onLogout = {
-                    navController.navigate("auth") {
+                    navController.navigate("role_select") {
                         popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Optional auth route retained for later reactivation
+        composable("auth") {
+            AuthScreen(
+                onLoginSuccess = {
+                    navController.navigate("role_select") {
+                        popUpTo("auth") { inclusive = true }
                     }
                 }
             )

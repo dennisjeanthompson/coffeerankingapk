@@ -2,6 +2,7 @@ package com.example.coffeerankingapk.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.coffeerankingapk.data.model.UserRole
 import com.example.coffeerankingapk.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ data class AuthUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val loginSuccessful: Boolean = false
+    val loginSuccessful: Boolean = false,
+    val pendingRole: UserRole? = null
 )
 
 class AuthViewModel(
@@ -35,24 +37,44 @@ class AuthViewModel(
     }
 
     fun signIn() {
-        val email = _uiState.value.email
-        val password = _uiState.value.password
-        if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email and password are required") }
-            return
+        quickSignIn(UserRole.LOVER)
+    }
+
+    fun quickSignIn(role: UserRole) {
+        val credentials = defaultCredentialsFor(role)
+        _uiState.update {
+            it.copy(
+                email = credentials.email,
+                password = credentials.password,
+                errorMessage = null,
+                pendingRole = role
+            )
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val result = authRepository.signInWithEmail(email, password)
-            _uiState.update { current ->
-                if (result.isSuccess) {
-                    current.copy(isLoading = false, loginSuccessful = true)
-                } else {
-                    current.copy(
+            _uiState.update { it.copy(isLoading = true, pendingRole = role) }
+
+            val result = authRepository.signInWithEmail(
+                email = credentials.email,
+                password = credentials.password
+            )
+
+            if (result.isSuccess) {
+                authRepository.updateUserRole(role)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        loginSuccessful = true,
+                        pendingRole = null
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
                         isLoading = false,
                         errorMessage = result.exceptionOrNull()?.localizedMessage
-                            ?: "Unable to sign in"
+                            ?: "Unable to sign in",
+                        pendingRole = null
                     )
                 }
             }
@@ -60,7 +82,7 @@ class AuthViewModel(
     }
 
     fun consumeLoginSuccess() {
-        _uiState.update { it.copy(loginSuccessful = false) }
+        _uiState.update { it.copy(loginSuccessful = false, pendingRole = null) }
     }
 
     fun signOut() {
@@ -68,5 +90,16 @@ class AuthViewModel(
             authRepository.signOut()
             _uiState.value = AuthUiState()
         }
+    }
+
+    private fun defaultCredentialsFor(role: UserRole): Credentials {
+        return if (role == UserRole.OWNER) ownerCredentials else loverCredentials
+    }
+
+    private data class Credentials(val email: String, val password: String)
+
+    companion object {
+        private val loverCredentials = Credentials(email = "lover@example.com", password = "password")
+        private val ownerCredentials = Credentials(email = "owner@example.com", password = "password")
     }
 }
