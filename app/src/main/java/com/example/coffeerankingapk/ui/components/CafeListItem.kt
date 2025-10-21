@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.coffeerankingapk.data.model.Cafe
 import com.example.coffeerankingapk.ui.theme.TextMuted
 
 @Composable
@@ -104,7 +105,7 @@ fun CafeListItem(
 // Overloaded version that takes a Cafe object and supports distance
 @Composable
 fun CafeListItem(
-    cafe: com.example.coffeerankingapk.data.Cafe,
+    cafe: Cafe,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     showDistance: Boolean = false,
@@ -118,7 +119,7 @@ fun CafeListItem(
         } else {
             cafe.description
         },
-        rating = cafe.rating,
+    rating = cafe.rating.toFloat(),
         imageUrl = cafe.imageUrl,
         isFavorite = isFavorite,
         onItemClick = onClick,

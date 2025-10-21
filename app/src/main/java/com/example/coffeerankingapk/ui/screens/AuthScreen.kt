@@ -17,31 +17,40 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.coffeerankingapk.data.firebase.ServiceLocator
 import com.example.coffeerankingapk.ui.components.OutlineButton
 import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.theme.BgCream
+import com.example.coffeerankingapk.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    viewModel: AuthViewModel = viewModel(factory = ServiceLocator.provideDefaultViewModelFactory())
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    
-    val isFormValid = email.isNotBlank() && password.isNotBlank()
+
+    LaunchedEffect(uiState.loginSuccessful) {
+        if (uiState.loginSuccessful) {
+            viewModel.consumeLoginSuccess()
+            onLoginSuccess()
+        }
+    }
     
     Scaffold(
         containerColor = BgCream
@@ -63,8 +72,8 @@ fun AuthScreen(
             
             // Email field
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = viewModel::onEmailChanged,
                 label = { Text("Email") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
@@ -72,8 +81,8 @@ fun AuthScreen(
             
             // Password field
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = uiState.password,
+                onValueChange = viewModel::onPasswordChanged,
                 label = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -92,14 +101,9 @@ fun AuthScreen(
             
             // Login button
             PrimaryButton(
-                text = if (isLoading) "Signing in..." else "Sign In",
-                onClick = {
-                    isLoading = true
-                    // TODO: Implement Firebase Auth login
-                    // For now, simulate login success
-                    onLoginSuccess()
-                },
-                enabled = isFormValid && !isLoading,
+                text = if (uiState.isLoading) "Signing in..." else "Sign In",
+                onClick = viewModel::signIn,
+                enabled = uiState.email.isNotBlank() && uiState.password.isNotBlank() && !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 32.dp)
@@ -110,14 +114,23 @@ fun AuthScreen(
                 text = "Continue with Google",
                 onClick = {
                     // TODO: Implement Google Sign-In
-                    onLoginSuccess()
+                    // viewModel.signInWithGoogle()
                 },
-                enabled = !isLoading,
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             )
             
+            uiState.errorMessage?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
             // Note about Firebase setup
             Text(
                 text = "TODO: Configure Firebase Auth in google-services.json",

@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.coffeerankingapk.ui.components.CafeListItem
 import com.example.coffeerankingapk.ui.theme.*
-import androidx.compose.foundation.background
 import com.example.coffeerankingapk.data.MockData
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,12 +95,9 @@ fun LoverDiscoverScreen(
                 searchQuery.isEmpty() || it.name.contains(searchQuery, ignoreCase = true)
             }) { cafe ->
                 CafeListItem(
-                    name = cafe.name,
-                    description = cafe.description,
-                    rating = cafe.rating,
-                    imageUrl = cafe.imageUrl,
+                    cafe = cafe,
                     isFavorite = cafe.id in favoriteCafes,
-                    onItemClick = { onCafeClick(cafe.id) },
+                    onClick = { onCafeClick(cafe.id) },
                     onFavoriteClick = {
                         favoriteCafes = if (cafe.id in favoriteCafes) {
                             favoriteCafes - cafe.id
