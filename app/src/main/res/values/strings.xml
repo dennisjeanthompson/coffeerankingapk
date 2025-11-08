@@ -5,6 +5,9 @@
     <!-- Mapbox Access Token - Replace with your actual token -->
     <string name="mapbox_access_token" translatable="false">sk.eyJ1IjoiZGVuMTMxenoiLCJhIjoiY21nczlsb2ZiMDAyODJrc2N3Z2VxMWJoYyJ9.avu99ci1zEUF9dTbjH7yiw</string>
     
+    <!-- Firebase OAuth Web Client ID for Google Sign-In -->
+    <string name="default_web_client_id" translatable="false">450871332665-mban3ld1vbmfa5b0hlvshusk1h2j5e1t.apps.googleusercontent.com</string>
+    
     <string name="place_your_cafe">Place your cafe</string>
     <string name="confirm_location">Confirm location</string>
     <string name="create_coupon">Create coupon</string>

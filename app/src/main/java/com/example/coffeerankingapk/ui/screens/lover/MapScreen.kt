@@ -25,7 +25,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.example.coffeerankingapk.R
-import com.example.coffeerankingapk.ui.navigation.TurnByTurnNavigationActivity
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.LocationServices
@@ -35,6 +34,7 @@ import com.mapbox.common.MapboxOptions
 import com.mapbox.common.location.LocationProvider
 import com.mapbox.common.location.LocationServiceFactory
 import com.mapbox.geojson.Point
+import com.mapbox.geojson.utils.PolylineUtils
 import com.mapbox.maps.CameraOptions as MapboxCameraOptions
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.MapView
@@ -44,6 +44,8 @@ import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.search.common.DistanceCalculator
@@ -92,6 +94,10 @@ fun MapScreen(
     var showShopDetails by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
+    var routeLineManager by remember { mutableStateOf<com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager?>(null) }
+    var isRouting by remember { mutableStateOf(false) }
+    var routeDistance by remember { mutableStateOf<Double?>(null) }
+    var routeDuration by remember { mutableStateOf<Double?>(null) }
     
     // Search state
     var searchQuery by remember { mutableStateOf("") }
@@ -151,6 +157,8 @@ fun MapScreen(
                         location.updateSettings {
                             enabled = true
                         }
+                        // Prepare a polyline annotation manager for route rendering
+                        routeLineManager = annotations.createPolylineAnnotationManager(null)
                         
                         // Center camera on user location
                         location.addOnIndicatorPositionChangedListener(object : OnIndicatorPositionChangedListener {
@@ -234,6 +242,23 @@ fun MapScreen(
                                                                 .zoom(15.0)
                                                                 .build()
                                                         )
+                                                        // Request and display a preview route line
+                                                        if (userLocation != null && mapView != null) {
+                                                            lifecycleOwner?.lifecycleScope?.launch {
+                                                                requestAndDrawRoute(
+                                                                    context = context,
+                                                                    originPoint = Point.fromLngLat(userLocation!!.longitude, userLocation!!.latitude),
+                                                                    destinationPoint = coordinate,
+                                                                    mapView = mapView!!,
+                                                                    routeLineManager = routeLineManager,
+                                                                    onRoutingState = { isRouting = it },
+                                                                    onRouteInfo = { distance, duration ->
+                                                                        routeDistance = distance
+                                                                        routeDuration = duration
+                                                                    }
+                                                                )
+                                                            }
+                                                        }
                                                         searchQuery = placeResult.name
                                                         showSearchResults = false
                                                     }
@@ -306,7 +331,32 @@ fun MapScreen(
                                                 }
                                                 
                                                 // Show markers on map
-                                                mapView?.let { showMarkersOnMap(it, results, context) }
+                                                mapView?.let { 
+                                                    showMarkersOnMap(
+                                                        mapView = it,
+                                                        results = results,
+                                                        context = context,
+                                                        onShowRoute = { destPoint ->
+                                                            val loc = userLocation
+                                                            if (loc != null) {
+                                                                lifecycleOwner.lifecycleScope.launch {
+                                                                    requestAndDrawRoute(
+                                                                        context = context,
+                                                                            originPoint = Point.fromLngLat(loc.longitude, loc.latitude),
+                                                                            destinationPoint = destPoint,
+                                                                        mapView = it,
+                                                                        routeLineManager = routeLineManager,
+                                                                        onRoutingState = { isRouting = it },
+                                                                        onRouteInfo = { distance, duration ->
+                                                                            routeDistance = distance
+                                                                            routeDuration = duration
+                                                                        }
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    )
+                                                }
                                                 isLoading = false
                                             }.onError { e ->
                                                 Log.e("MapScreen", "Error searching coffee shops", e)
@@ -387,7 +437,32 @@ fun MapScreen(
                                         )
                                     }
                                     
-                                    mapView?.let { showMarkersOnMap(it, results, context) }
+                                    mapView?.let { 
+                                        showMarkersOnMap(
+                                            mapView = it,
+                                            results = results,
+                                            context = context,
+                                            onShowRoute = { destPoint ->
+                                                val loc = userLocation
+                                                if (loc != null) {
+                                                    lifecycleOwner.lifecycleScope.launch {
+                                                        requestAndDrawRoute(
+                                                            context = context,
+                                                                originPoint = Point.fromLngLat(loc.longitude, loc.latitude),
+                                                                destinationPoint = destPoint,
+                                                            mapView = it,
+                                                            routeLineManager = routeLineManager,
+                                                            onRoutingState = { isRouting = it },
+                                                            onRouteInfo = { distance, duration ->
+                                                                routeDistance = distance
+                                                                routeDuration = duration
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
                                     isLoading = false
                                 }.onError { e ->
                                     Log.e("MapScreen", "Error searching in area", e)
@@ -423,7 +498,16 @@ fun MapScreen(
                     )
                 ) {
                     Text(
-                        text = "Found ${coffeeShops.size} coffee shops",
+                        text = buildString {
+                            append("Found ${coffeeShops.size} coffee shops")
+                            if (isRouting) {
+                                append("  •  Drawing route...")
+                            } else if (routeDistance != null && routeDuration != null) {
+                                val distanceKm = routeDistance!! / 1000.0
+                                val durationMin = (routeDuration!! / 60.0).toInt()
+                                append("  •  ${String.format("%.1f", distanceKm)} km, $durationMin min")
+                            }
+                        },
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
@@ -474,7 +558,12 @@ fun MapScreen(
 }
 
 // Helper function to show markers on map
-private fun showMarkersOnMap(mapView: MapView, results: List<DiscoverResult>, context: Context) {
+private fun showMarkersOnMap(
+    mapView: MapView,
+    results: List<DiscoverResult>,
+    context: Context,
+    onShowRoute: (Point) -> Unit
+) {
     try {
         val annotationManager = mapView.annotations.createPointAnnotationManager(null)
         annotationManager.deleteAll()
@@ -497,17 +586,12 @@ private fun showMarkersOnMap(mapView: MapView, results: List<DiscoverResult>, co
         // Add click listener for markers
         annotationManager.addClickListener { annotation ->
             resultMap[annotation.id]?.let { shop ->
-                // Show dialog with navigation option
+                // Show dialog with route option only (turn-by-turn removed)
                 android.app.AlertDialog.Builder(context)
                     .setTitle(shop.name)
-                    .setMessage("Would you like to start turn-by-turn navigation to this coffee shop?")
-                    .setPositiveButton("Navigate") { _, _ ->
-                        val intent = TurnByTurnNavigationActivity.createIntent(
-                            context = context,
-                            destinationLat = shop.coordinate.latitude(),
-                            destinationLng = shop.coordinate.longitude()
-                        )
-                        context.startActivity(intent)
+                    .setMessage("Would you like to see the route to this coffee shop?")
+                    .setPositiveButton("Show Route") { _, _ ->
+                        onShowRoute(shop.coordinate)
                     }
                     .setNegativeButton("Cancel", null)
                     .show()
@@ -560,5 +644,123 @@ private suspend fun getCurrentLocation(context: Context): Location? {
     } catch (e: Exception) {
         Log.e("MapScreen", "Error getting location", e)
         null
+    }
+}
+
+// Fetch a route via Mapbox Directions and render it as a polyline on the map
+private suspend fun requestAndDrawRoute(
+    context: Context,
+    originPoint: Point,
+    destinationPoint: Point,
+    mapView: MapView,
+    routeLineManager: com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager?,
+    onRoutingState: (Boolean) -> Unit,
+    onRouteInfo: (distance: Double, duration: Double) -> Unit
+) {
+    try {
+        onRoutingState(true)
+        
+        // Build the Mapbox Directions API URL directly
+        val accessToken = MapboxOptions.accessToken ?: ""
+        val url = "https://api.mapbox.com/directions/v5/mapbox/driving/" +
+                "${originPoint.longitude()},${originPoint.latitude()};" +
+                "${destinationPoint.longitude()},${destinationPoint.latitude()}" +
+                "?overview=full&geometries=polyline6&steps=true&access_token=$accessToken"
+        
+        Log.i("MapScreen", "Requesting route from Mapbox Directions API")
+        
+        // Execute the HTTP request on IO dispatcher
+        val responseText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            java.net.URL(url).readText()
+        }
+        
+        Log.i("MapScreen", "Directions response received: ${responseText.take(200)}...")
+        
+        // Parse JSON response manually
+        val jsonResponse = org.json.JSONObject(responseText)
+        val routes = jsonResponse.optJSONArray("routes")
+        
+        if (routes == null || routes.length() == 0) {
+            Log.e("MapScreen", "No routes returned")
+            // Fallback to straight line
+            drawStraightLineRoute(mapView, routeLineManager, originPoint, destinationPoint)
+            onRoutingState(false)
+            return
+        }
+        
+        val route = routes.getJSONObject(0)
+        val geometry = route.optString("geometry")
+        
+        if (geometry.isNullOrEmpty()) {
+            Log.e("MapScreen", "No route geometry returned")
+            // Fallback to straight line
+            drawStraightLineRoute(mapView, routeLineManager, originPoint, destinationPoint)
+            onRoutingState(false)
+            return
+        }
+
+        // Decode the route geometry (Polyline6 format)
+        val points: List<Point> = PolylineUtils.decode(geometry, 6)
+        Log.i("MapScreen", "Decoded route with ${points.size} points")
+        
+        // Extract route info
+        val distance = route.optDouble("distance", 0.0) // in meters
+        val duration = route.optDouble("duration", 0.0) // in seconds
+        Log.i("MapScreen", "Route: ${distance}m, ${duration}s")
+        
+        // Update route info
+        onRouteInfo(distance, duration)
+
+        // Draw route polyline
+        drawRoutePolyline(mapView, routeLineManager, points)
+
+        // Fit camera to route
+        mapView.mapboxMap.cameraForCoordinates(points, EdgeInsets(100.0, 100.0, 300.0, 100.0))?.let { cameraOptions ->
+            mapView.camera.flyTo(cameraOptions)
+        }
+    } catch (e: Exception) {
+        Log.e("MapScreen", "Error fetching route", e)
+        // Fallback to straight line on error
+        try {
+            drawStraightLineRoute(mapView, routeLineManager, originPoint, destinationPoint)
+        } catch (fallbackError: Exception) {
+            Log.e("MapScreen", "Error drawing fallback route", fallbackError)
+        }
+    } finally {
+        onRoutingState(false)
+    }
+}
+
+// Fallback: draw a simple straight line between two points
+private fun drawStraightLineRoute(
+    mapView: MapView,
+    routeLineManager: com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager?,
+    originPoint: Point,
+    destinationPoint: Point
+) {
+    val points = listOf(originPoint, destinationPoint)
+    Log.i("MapScreen", "Drawing straight-line fallback route")
+    drawRoutePolyline(mapView, routeLineManager, points)
+    mapView.mapboxMap.cameraForCoordinates(points, EdgeInsets(100.0, 100.0, 300.0, 100.0))?.let { cameraOptions ->
+        mapView.camera.flyTo(cameraOptions)
+    }
+}
+
+private fun drawRoutePolyline(
+    mapView: MapView,
+    routeLineManager: com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager?,
+    points: List<Point>
+) {
+    try {
+        val manager = routeLineManager ?: mapView.annotations.createPolylineAnnotationManager(null)
+        // Clear previous route
+        manager.deleteAll()
+        val options = PolylineAnnotationOptions()
+            .withPoints(points)
+            .withLineColor("#1E90FF")
+            .withLineWidth(6.0)
+        manager.create(options)
+    } catch (e: Exception) {
+        Log.e("MapScreen", "Error drawing route polyline", e)
     }
 }
