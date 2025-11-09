@@ -175,9 +175,12 @@ class CoffeeShopRepository {
     suspend fun addCoffeeShop(shop: CoffeeShop): Result<String> {
         return try {
             val docRef = coffeeShopsCollection.document()
-            val shopData = shop.copy(id = docRef.id, type = "coffee shop").toMap()
+            val shopData = shop.copy(
+                id = docRef.id,
+                type = shop.type.ifBlank { "Coffee Shop" } // Use provided type or default
+            ).toMap()
             docRef.set(shopData).await()
-            Log.d(TAG, "Coffee shop added: ${docRef.id}")
+            Log.d(TAG, "Coffee shop added: ${docRef.id}, name: ${shop.name}, location: ${shop.location}")
             Result.success(docRef.id)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding coffee shop", e)

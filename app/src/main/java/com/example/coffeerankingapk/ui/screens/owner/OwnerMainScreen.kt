@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 fun OwnerMainScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToCoupons: () -> Unit = {},
+    onNavigateToAddShop: () -> Unit = {},
+    onNavigateToRating: (String) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -28,38 +30,48 @@ fun OwnerMainScreen(
                     onClick = { selectedTab = 0 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Analytics") },
-                    label = { Text("Analytics") },
+                    icon = { Icon(Icons.Default.LocationOn, contentDescription = "Map") },
+                    label = { Text("Map") },
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Star, contentDescription = "Coupons") },
-                    label = { Text("Coupons") },
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Analytics") },
+                    label = { Text("Analytics") },
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") },
+                    icon = { Icon(Icons.Default.Star, contentDescription = "Coupons") },
+                    label = { Text("Coupons") },
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 }
                 )
             }
         }
     ) { paddingValues ->
         when (selectedTab) {
             0 -> OwnerDashboardScreen(
-                onNavigateToAnalytics = { selectedTab = 1 },
-                onNavigateToCoupons = { selectedTab = 2 }
+                onNavigateToAnalytics = { selectedTab = 2 },
+                onNavigateToCoupons = { selectedTab = 3 }
             )
-            1 -> OwnerAnalyticsScreen(
+            1 -> OwnerMapScreen(
+                onNavigateToAddShop = onNavigateToAddShop,
+                onNavigateToRating = onNavigateToRating
+            )
+            2 -> OwnerAnalyticsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
-            2 -> OwnerCouponsScreen(
+            3 -> OwnerCouponsScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
-            3 -> OwnerProfileScreen(
+            4 -> OwnerProfileScreen(
                 onLogout = onLogout
             )
         }

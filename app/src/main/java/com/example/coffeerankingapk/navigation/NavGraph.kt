@@ -55,10 +55,25 @@ fun NavGraph(
         // Owner flow - main screen with bottom navigation
         composable("owner") {
             OwnerMainScreen(
+                onNavigateToAddShop = {
+                    navController.navigate("owner_add_shop")
+                },
+                onNavigateToRating = { shopId ->
+                    navController.navigate("coffee_shop_rating/$shopId")
+                },
                 onLogout = {
                     navController.navigate("auth") {
                         popUpTo(0) { inclusive = true }
                     }
+                }
+            )
+        }
+        
+        // Owner add coffee shop screen
+        composable("owner_add_shop") {
+            com.example.coffeerankingapk.ui.screens.owner.AddCoffeeShopScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
