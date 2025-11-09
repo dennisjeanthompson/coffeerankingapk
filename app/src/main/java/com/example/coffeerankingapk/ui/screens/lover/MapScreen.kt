@@ -25,6 +25,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.example.coffeerankingapk.R
+import com.example.coffeerankingapk.data.repository.CafeRepository
+import com.example.coffeerankingapk.data.model.Cafe
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.location.LocationServices
@@ -84,13 +86,18 @@ fun MapScreen(
     // Initialize Place Autocomplete for search
     val placeAutocomplete = remember { PlaceAutocomplete.create() }
     
+    // Initialize Firestore repository
+    val cafeRepository = remember { CafeRepository() }
+    
     val locationProvider = remember { 
         LocationServiceFactory.getOrCreate().getDeviceLocationProvider(null).value
     }
     
     var userLocation by remember { mutableStateOf<Location?>(null) }
     var coffeeShops by remember { mutableStateOf<List<CoffeeShopResult>>(emptyList()) }
+    var firestoreCafes by remember { mutableStateOf<List<Cafe>>(emptyList()) }
     var selectedShop by remember { mutableStateOf<CoffeeShopResult?>(null) }
+    var selectedFirestoreCafe by remember { mutableStateOf<Cafe?>(null) }
     var showShopDetails by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var mapView by remember { mutableStateOf<MapView?>(null) }
@@ -98,6 +105,47 @@ fun MapScreen(
     var isRouting by remember { mutableStateOf(false) }
     var routeDistance by remember { mutableStateOf<Double?>(null) }
     var routeDuration by remember { mutableStateOf<Double?>(null) }
+    
+    // Load cafes from Firestore
+    LaunchedEffect(userLocation) {
+        userLocation?.let { loc ->
+            cafeRepository.getCafesNearLocation(
+                loc.latitude,
+                loc.longitude,
+                radiusInKm = 50.0 // 50km radius
+            ).onSuccess { cafes ->
+                firestoreCafes = cafes
+                android.util.Log.d("MapScreen", "Loaded ${cafes.size} cafes from Firestore")
+                
+                // Automatically display Firestore cafes on map
+                mapView?.let { map ->
+                    showFirestoreCafesOnMap(
+                        mapView = map,
+                        cafes = cafes,
+                        context = context,
+                        onShowRoute = { destPoint ->
+                            lifecycleOwner?.lifecycleScope?.launch {
+                                requestAndDrawRoute(
+                                    context = context,
+                                    originPoint = Point.fromLngLat(loc.longitude, loc.latitude),
+                                    destinationPoint = destPoint,
+                                    mapView = map,
+                                    routeLineManager = routeLineManager,
+                                    onRoutingState = { isRouting = it },
+                                    onRouteInfo = { distance, duration ->
+                                        routeDistance = distance
+                                        routeDuration = duration
+                                    }
+                                )
+                            }
+                        }
+                    )
+                }
+            }.onFailure { e ->
+                android.util.Log.e("MapScreen", "Failed to load cafes", e)
+            }
+        }
+    }
     
     // Search state
     var searchQuery by remember { mutableStateOf("") }
@@ -611,6 +659,73 @@ private fun showMarkersOnMap(
         Log.i("MapScreen", "Displayed ${results.size} markers on map")
     } catch (e: Exception) {
         Log.e("MapScreen", "Error showing markers", e)
+    }
+}
+
+// Helper function to show Firestore cafes on map
+private fun showFirestoreCafesOnMap(
+    mapView: MapView,
+    cafes: List<Cafe>,
+    context: Context,
+    onShowRoute: (Point) -> Unit
+) {
+    try {
+        val annotationManager = mapView.annotations.createPointAnnotationManager(null)
+        annotationManager.deleteAll()
+        
+        if (cafes.isEmpty()) {
+            Log.d("MapScreen", "No Firestore cafes to display")
+            return
+        }
+        
+        val coordinates = mutableListOf<Point>()
+        val cafeMap = mutableMapOf<String, Cafe>()
+        
+        cafes.forEach { cafe ->
+            cafe.location?.let { geoPoint ->
+                val point = Point.fromLngLat(geoPoint.longitude, geoPoint.latitude)
+                val options = PointAnnotationOptions()
+                    .withPoint(point)
+                    .withIconAnchor(IconAnchor.BOTTOM)
+                
+                val annotation = annotationManager.create(options)
+                cafeMap[annotation.id] = cafe
+                coordinates.add(point)
+            }
+        }
+        
+        // Add click listener for markers
+        annotationManager.addClickListener { annotation ->
+            cafeMap[annotation.id]?.let { cafe ->
+                // Show dialog with cafe info
+                android.app.AlertDialog.Builder(context)
+                    .setTitle(cafe.name)
+                    .setMessage("${cafe.description}\n\nRating: ${cafe.rating} ⭐\nReviews: ${cafe.reviewCount}")
+                    .setPositiveButton("Show Route") { _, _ ->
+                        cafe.location?.let { geoPoint ->
+                            onShowRoute(Point.fromLngLat(geoPoint.longitude, geoPoint.latitude))
+                        }
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            true
+        }
+        
+        // Adjust camera to show all markers
+        if (coordinates.isNotEmpty()) {
+            val edgeInsets = EdgeInsets(100.0, 100.0, 300.0, 100.0)
+            mapView.mapboxMap.cameraForCoordinates(
+                coordinates,
+                edgeInsets
+            )?.let { cameraOptions ->
+                mapView.camera.flyTo(cameraOptions)
+            }
+        }
+        
+        Log.i("MapScreen", "Displayed ${cafes.size} Firestore cafes on map")
+    } catch (e: Exception) {
+        Log.e("MapScreen", "Error showing Firestore cafes", e)
     }
 }
 

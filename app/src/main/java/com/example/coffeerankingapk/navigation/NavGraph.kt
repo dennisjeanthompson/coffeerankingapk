@@ -9,10 +9,12 @@ import com.example.coffeerankingapk.ui.screens.AuthScreen
 import com.example.coffeerankingapk.ui.screens.RoleSelectScreen
 import com.example.coffeerankingapk.ui.screens.owner.OwnerMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.CafeDetailScreen
+import com.example.coffeerankingapk.ui.screens.lover.CoffeeShopMapScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverDiscoverScreen
 import com.example.coffeerankingapk.ui.screens.lover.LoverMainScreen
 import com.example.coffeerankingapk.ui.screens.lover.MapScreen
 import com.example.coffeerankingapk.ui.screens.lover.RateScreen
+import com.example.coffeerankingapk.ui.screens.lover.RatingScreen
 import com.example.coffeerankingapk.ui.screens.lover.RewardsScreen
 
 @Composable
@@ -74,6 +76,9 @@ fun NavGraph(
                     navController.navigate("auth") {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToRating = { shopId ->
+                    navController.navigate("coffee_shop_rating/$shopId")
                 }
             )
         }
@@ -105,6 +110,25 @@ fun NavGraph(
             MapScreen(
                 onNavigateToCafe = { cafeId ->
                     navController.navigate("cafe_detail/$cafeId")
+                }
+            )
+        }
+        
+        // Coffee shop map with ratings
+        composable("coffee_shop_map") {
+            CoffeeShopMapScreen(
+                onNavigateToRating = { shopId ->
+                    navController.navigate("coffee_shop_rating/$shopId")
+                }
+            )
+        }
+        
+        composable("coffee_shop_rating/{shopId}") { backStackEntry ->
+            val shopId = backStackEntry.arguments?.getString("shopId") ?: ""
+            RatingScreen(
+                shopId = shopId,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

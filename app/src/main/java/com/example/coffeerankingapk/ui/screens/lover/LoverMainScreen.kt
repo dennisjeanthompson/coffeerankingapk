@@ -22,7 +22,8 @@ import com.google.accompanist.permissions.shouldShowRationale
 fun LoverMainScreen(
     onCafeClick: (String) -> Unit = {},
     onNavigateToRewards: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToRating: (String) -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var requestedMapAccess by remember { mutableStateOf(false) }
@@ -96,8 +97,8 @@ fun LoverMainScreen(
                         }
                     )
                 } else {
-                    MapScreen(
-                        onNavigateToCafe = onCafeClick
+                    CoffeeShopMapScreen(
+                        onNavigateToRating = onNavigateToRating
                     )
                 }
             }

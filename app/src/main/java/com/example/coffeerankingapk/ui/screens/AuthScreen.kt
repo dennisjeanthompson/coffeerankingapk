@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,17 @@ fun AuthScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSignUpMode by remember { mutableStateOf(false) }
+    var isAlreadyLoggedIn by remember { mutableStateOf(false) }
+    
+    // Check if user is already logged in when screen loads
+    LaunchedEffect(Unit) {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            isAlreadyLoggedIn = true
+            // Auto-login if user exists
+            android.util.Log.d("AuthScreen", "User already logged in: ${currentUser.email}")
+        }
+    }
     
     val isFormValid = email.isNotBlank() && password.isNotBlank()
     
@@ -149,19 +161,74 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App logo/title
-            Text(
-                text = if (isSignUpMode) "Create Account" else "Welcome Back",
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            Text(
-                text = if (isSignUpMode) "Sign up to get started" else "Sign in to continue",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
+            // Show different UI if user is already logged in
+            if (isAlreadyLoggedIn && auth.currentUser != null) {
+                Text(
+                    text = "Already Logged In",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = "Logged in as:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = auth.currentUser?.email ?: "Unknown",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 32.dp)
+                )
+                
+                // Continue button
+                PrimaryButton(
+                    text = "Continue to App",
+                    onClick = {
+                        Toast.makeText(
+                            context,
+                            "Welcome back ${auth.currentUser?.email}!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onLoginSuccess()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                )
+                
+                // Sign out button
+                OutlineButton(
+                    text = "Sign Out",
+                    onClick = {
+                        auth.signOut()
+                        googleSignInClient.signOut()
+                        isAlreadyLoggedIn = false
+                        Toast.makeText(
+                            context,
+                            "Signed out successfully",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                // Regular login/signup UI
+                // App logo/title
+                Text(
+                    text = if (isSignUpMode) "Create Account" else "Welcome Back",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = if (isSignUpMode) "Sign up to get started" else "Sign in to continue",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 32.dp)
+                )
             
             // Email field
             OutlinedTextField(
@@ -329,6 +396,7 @@ fun AuthScreen(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 24.dp)
             )
+            }
         }
     }
 }
