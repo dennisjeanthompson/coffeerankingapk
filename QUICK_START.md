@@ -84,9 +84,8 @@ implementation 'com.mapbox.extension:maps-compose:11.0.0'
 implementation 'com.mapbox.search:mapbox-search-android:1.0.0'
 implementation 'com.mapbox.search:mapbox-search-android-ui:1.0.0'
 
-// Mapbox Navigation SDK
-implementation 'com.mapbox.navigation:android:2.17.0'
-implementation 'com.mapbox.navigation:ui-maps:2.17.0'
+// NOTE: Mapbox Navigation SDK is not included in this project
+// Use `com.mapbox.mapboxsdk:mapbox-sdk-services` (Directions) for route fetching if needed
 
 // Location services
 implementation 'com.google.android.gms:play-services-location:21.0.1'

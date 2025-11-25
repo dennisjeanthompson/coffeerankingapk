@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.coffeerankingapk.R
+import com.example.coffeerankingapk.data.model.UserRole
+import com.example.coffeerankingapk.data.repository.UserRepository
 import com.example.coffeerankingapk.ui.components.OutlineButton
 import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.theme.BgCream
@@ -47,14 +51,18 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onLoginSuccessWithRole: (UserRole) -> Unit
 ) {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
+    val scope = rememberCoroutineScope()
+    val userRepository = remember { UserRepository() }
     
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -63,13 +71,44 @@ fun AuthScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSignUpMode by remember { mutableStateOf(false) }
     var isAlreadyLoggedIn by remember { mutableStateOf(false) }
+    var checkingRole by remember { mutableStateOf(false) }
+    
+    // Function to check user role and navigate accordingly
+    val checkUserRoleAndNavigate: () -> Unit = {
+        checkingRole = true
+        scope.launch {
+            try {
+                val result = userRepository.getCurrentUser()
+                checkingRole = false
+                
+                result.onSuccess { user ->
+                    if (user != null && user.role != null) {
+                        // User has a role, navigate directly
+                        android.util.Log.d("AuthScreen", "User has role: ${user.role}")
+                        onLoginSuccessWithRole(user.role)
+                    } else {
+                        // No role set, go to role selection
+                        android.util.Log.d("AuthScreen", "No role found, navigating to role selection")
+                        onLoginSuccess()
+                    }
+                }.onFailure { error ->
+                    android.util.Log.e("AuthScreen", "Error checking user role", error)
+                    // On error, go to role selection to be safe
+                    onLoginSuccess()
+                }
+            } catch (e: Exception) {
+                checkingRole = false
+                android.util.Log.e("AuthScreen", "Exception checking role", e)
+                onLoginSuccess()
+            }
+        }
+    }
     
     // Check if user is already logged in when screen loads
     LaunchedEffect(Unit) {
         val currentUser = auth.currentUser
         if (currentUser != null) {
             isAlreadyLoggedIn = true
-            // Auto-login if user exists
             android.util.Log.d("AuthScreen", "User already logged in: ${currentUser.email}")
         }
     }
@@ -121,7 +160,7 @@ fun AuthScreen(
                                 "Welcome ${user?.displayName ?: user?.email}!",
                                 Toast.LENGTH_SHORT
                             ).show()
-                            onLoginSuccess()
+                            checkUserRoleAndNavigate()
                         } else {
                             val error = authTask.exception?.message ?: "Google sign-in failed"
                             android.util.Log.e("AuthScreen", "Firebase sign-in failed: $error", authTask.exception)
@@ -185,15 +224,16 @@ fun AuthScreen(
                 
                 // Continue button
                 PrimaryButton(
-                    text = "Continue to App",
+                    text = if (checkingRole) "Checking..." else "Continue to App",
                     onClick = {
                         Toast.makeText(
                             context,
                             "Welcome back ${auth.currentUser?.email}!",
                             Toast.LENGTH_SHORT
                         ).show()
-                        onLoginSuccess()
+                        checkUserRoleAndNavigate()
                     },
+                    enabled = !checkingRole,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
@@ -301,7 +341,7 @@ fun AuthScreen(
                                         "Account created! Welcome!",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    onLoginSuccess()
+                                    checkUserRoleAndNavigate()
                                 } else {
                                     errorMessage = task.exception?.message ?: "Failed to create account"
                                 }
@@ -318,7 +358,7 @@ fun AuthScreen(
                                         "Welcome back ${user?.email}!",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    onLoginSuccess()
+                                    checkUserRoleAndNavigate()
                                 } else {
                                     errorMessage = task.exception?.message ?: "Authentication failed"
                                 }

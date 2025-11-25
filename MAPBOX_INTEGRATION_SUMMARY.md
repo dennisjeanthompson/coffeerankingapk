@@ -12,7 +12,7 @@ The Coffee Ranking APK now has **complete Mapbox integration** with search, rout
 - **Mapbox Maps SDK 11.0.0** - Core mapping functionality
 - **Mapbox Compose Extension** - Jetpack Compose integration
 - **Mapbox Search SDK 1.0.0** - Location search capabilities
-- **Mapbox Navigation SDK 2.17.0** - Routing and directions
+// Mapbox Navigation SDK is not included in this project; route fetching uses mapbox-sdk-services if needed
 - **Google Play Services Location** - User location tracking
 
 ### 2. **MapScreen Features** ✅
@@ -64,12 +64,11 @@ The new `MapScreen.kt` includes:
 - Graceful fallback when denied
 - Works without permissions (no location features)
 
-### 3. **Navigation Integration** ✅
-- Added "Map" tab to lover bottom navigation
-- Icon: Location pin
-- Positioned between Home and Rewards
-- Seamless navigation between screens
-- Map route added to NavGraph
+### 3. **Routing Integration (Directions)** ✅
+ - Added "Map" tab to lover bottom navigation
+ - Icon: Location pin
+ - Positioned between Home and Rewards
+ - Map route integration and NavGraph entry for maps
 
 ### 4. **Mock Data Updated** ✅
 Added realistic coordinates to all cafes:
@@ -252,7 +251,7 @@ Use Extended Controls → Location to set test coordinates:
 ## 🚧 Future Enhancements
 
 ### Recommended Next Steps:
-1. **Mapbox Directions API** - Real turn-by-turn navigation
+1. **Mapbox Directions API** - Real routing/directions (turn-by-turn navigation not implemented in-app)
 2. **Custom Marker Icons** - Use cafe photos/logos
 3. **Marker Clustering** - Group nearby cafes when zoomed out
 4. **Offline Maps** - Download regions for offline use

@@ -1,5 +1,6 @@
 package com.example.coffeerankingapk.ui.screens.lover
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +14,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,9 +29,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.coffeerankingapk.ui.components.AppCard
@@ -44,16 +51,25 @@ import com.example.coffeerankingapk.ui.components.OutlineButton
 import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.components.RatingStars
 import com.example.coffeerankingapk.ui.theme.BgCream
+import com.example.coffeerankingapk.ui.theme.PrimaryBrown
 import com.example.coffeerankingapk.ui.theme.TextMuted
+import com.example.coffeerankingapk.viewmodel.FavoritesViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CafeDetailScreen(
     cafeId: String,
     onNavigateBack: () -> Unit,
-    onNavigateToRate: () -> Unit = {}
+    onNavigateToRate: () -> Unit = {},
+    favoritesViewModel: FavoritesViewModel = viewModel()
 ) {
     var showRatingDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    // Check if this cafe is favorited
+    val isFavorite by favoritesViewModel.isFavorite(cafeId).collectAsState(initial = false)
     
     // Mock cafe data based on ID
     val cafe = remember(cafeId) {
@@ -92,6 +108,28 @@ fun CafeDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        scope.launch {
+                            if (isFavorite) {
+                                favoritesViewModel.removeFavorite(cafeId)
+                                Toast.makeText(context, "Removed from favorites", Toast.LENGTH_SHORT).show()
+                            } else {
+                                favoritesViewModel.addFavorite(
+                                    shopId = cafeId,
+                                    shopName = cafe.name,
+                                    shopAddress = cafe.distance,
+                                    averageRating = cafe.rating
+                                )
+                                Toast.makeText(context, "Added to favorites", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
+                        Icon(
+                            if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) PrimaryBrown else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     IconButton(onClick = { /* TODO: Share functionality */ }) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
                     }

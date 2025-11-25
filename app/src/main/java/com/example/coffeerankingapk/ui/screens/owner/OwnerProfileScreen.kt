@@ -1,6 +1,7 @@
 package com.example.coffeerankingapk.ui.screens.owner
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,7 +22,11 @@ import com.example.coffeerankingapk.ui.theme.PrimaryBrown
 
 @Composable
 fun OwnerProfileScreen(
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToProfilePicture: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -195,9 +200,31 @@ fun OwnerProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     SettingsItem(
+                        icon = Icons.Default.Person,
+                        title = "Edit Profile",
+                        subtitle = "Update your personal information",
+                        onClick = onNavigateToEditProfile
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.AccountCircle,
+                        title = "Profile Picture",
+                        subtitle = "Update your profile photo",
+                        onClick = onNavigateToProfilePicture
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Favorite,
+                        title = "Favorites",
+                        subtitle = "View your saved cafes",
+                        onClick = onNavigateToFavorites
+                    )
+                    
+                    SettingsItem(
                         icon = Icons.Default.Notifications,
                         title = "Notifications",
-                        subtitle = "Manage notification preferences"
+                        subtitle = "Manage notification preferences",
+                        onClick = onNavigateToNotifications
                     )
                     
                     SettingsItem(
@@ -294,11 +321,13 @@ private fun ProfileItem(
 private fun SettingsItem(
     icon: ImageVector,
     title: String,
-    subtitle: String
+    subtitle: String,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

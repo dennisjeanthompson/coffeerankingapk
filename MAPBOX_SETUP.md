@@ -177,7 +177,7 @@ For production apps with more traffic, consider upgrading your Mapbox plan.
 
 To enhance the map functionality further:
 
-1. **Integrate Mapbox Directions API**: Get real turn-by-turn navigation
+1. **Integrate Mapbox Directions API**: Get real routing/directions (turn-by-turn navigation is a future enhancement)
 2. **Add custom marker icons**: Use cafe images as markers
 3. **Implement clustering**: Group nearby cafes when zoomed out
 4. **Add traffic layers**: Show real-time traffic conditions

@@ -6,30 +6,36 @@ import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import com.example.coffeerankingapk.R
 import com.example.coffeerankingapk.data.model.CoffeeShop
+import com.example.coffeerankingapk.ui.theme.PrimaryBrown
 import com.example.coffeerankingapk.util.SampleDataSeeder
 import com.example.coffeerankingapk.viewmodel.CoffeeShopViewModel
+import com.example.coffeerankingapk.viewmodel.FavoritesViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
@@ -46,6 +52,7 @@ import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.locationcomponent.location
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,58 +105,83 @@ fun CoffeeShopMapScreen(
             }
         )
         
-        // Search box at the top
+        // Search box at the top - IMPROVED UI/UX
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
                 .align(Alignment.TopCenter),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
             Column {
                 TextField(
                     value = searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search coffee shops...") },
+                    placeholder = { 
+                        Text(
+                            "Search coffee shops...",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        ) 
+                    },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                        Icon(
+                            Icons.Default.Search, 
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                Icon(
+                                    Icons.Default.Clear, 
+                                    contentDescription = "Clear",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        cursorColor = MaterialTheme.colorScheme.primary,
                         focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                     ),
                     singleLine = true
                 )
                 
-                // Shop count indicator
-                Text(
-                    text = if (searchQuery.isNotEmpty() && coffeeShops.isNotEmpty()) {
-                        "Found ${coffeeShops.size} coffee shop${if (coffeeShops.size != 1) "s" else ""} matching \"$searchQuery\""
-                    } else if (searchQuery.isNotEmpty() && coffeeShops.isEmpty()) {
-                        "No coffee shops found matching \"$searchQuery\""
-                    } else {
-                        "${coffeeShops.size} coffee shop${if (coffeeShops.size != 1) "s" else ""} nearby"
-                    },
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (searchQuery.isNotEmpty() && coffeeShops.isNotEmpty()) {
-                        MaterialTheme.colorScheme.primary
-                    } else if (searchQuery.isNotEmpty() && coffeeShops.isEmpty()) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
+                // Shop count indicator - IMPROVED VISIBILITY
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ) {
+                    Text(
+                        text = if (searchQuery.isNotEmpty() && coffeeShops.isNotEmpty()) {
+                            "Found ${coffeeShops.size} coffee shop${if (coffeeShops.size != 1) "s" else ""} matching \"$searchQuery\""
+                        } else if (searchQuery.isNotEmpty() && coffeeShops.isEmpty()) {
+                            "No coffee shops found matching \"$searchQuery\""
+                        } else {
+                            "${coffeeShops.size} coffee shop${if (coffeeShops.size != 1) "s" else ""} nearby"
+                        },
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (searchQuery.isNotEmpty() && coffeeShops.isNotEmpty()) {
+                            MaterialTheme.colorScheme.primary
+                        } else if (searchQuery.isNotEmpty() && coffeeShops.isEmpty()) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
 
                 // Filter mode chips: Strict / Flexible / All
                 Row(
@@ -571,18 +603,57 @@ private fun loadCoffeeShopsOnMap(
 @Composable
 fun CoffeeShopBottomSheetContent(
     shop: CoffeeShop,
-    onRateClick: () -> Unit
+    onRateClick: () -> Unit,
+    favoritesViewModel: FavoritesViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val isFavorite by favoritesViewModel.isFavorite(shop.id).collectAsState(initial = false)
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(
-            text = shop.name,
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // Header with title and favorite button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                text = shop.name,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f)
+            )
+            
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        if (isFavorite) {
+                            favoritesViewModel.removeFavorite(shop.id)
+                            Toast.makeText(context, "Removed from favorites", Toast.LENGTH_SHORT).show()
+                        } else {
+                            favoritesViewModel.addFavorite(
+                                shopId = shop.id,
+                                shopName = shop.name,
+                                shopAddress = shop.address,
+                                averageRating = shop.averageRating.toFloat()
+                            )
+                            Toast.makeText(context, "Added to favorites", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    tint = if (isFavorite) PrimaryBrown else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
         
         Row(
             verticalAlignment = Alignment.CenterVertically,

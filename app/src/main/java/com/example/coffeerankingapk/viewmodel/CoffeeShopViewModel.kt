@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.coffeerankingapk.data.model.CoffeeShop
 import com.example.coffeerankingapk.data.repository.CoffeeShopRepository
+import com.example.coffeerankingapk.data.repository.PointsRepository
+import com.example.coffeerankingapk.data.model.UserPoints
 import com.example.coffeerankingapk.util.SampleDataSeeder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.delay
 
 class CoffeeShopViewModel : ViewModel() {
     private val repository = CoffeeShopRepository()
+    private val pointsRepository = PointsRepository()
     
     // Baguio City coordinates
     private val baguioLat = 16.4023
@@ -20,6 +23,10 @@ class CoffeeShopViewModel : ViewModel() {
     private val maxRadiusKm = 100.0 // 100km radius to cover nearby areas in Luzon
     
     private val _allCoffeeShops = MutableStateFlow<List<CoffeeShop>>(emptyList())
+    val allCoffeeShops: StateFlow<List<CoffeeShop>> = _allCoffeeShops.asStateFlow()
+
+    private val _ownerShops = MutableStateFlow<List<CoffeeShop>>(emptyList())
+    val ownerShops: StateFlow<List<CoffeeShop>> = _ownerShops.asStateFlow()
     
     private val _coffeeShops = MutableStateFlow<List<CoffeeShop>>(emptyList())
     val coffeeShops: StateFlow<List<CoffeeShop>> = _coffeeShops.asStateFlow()
@@ -57,12 +64,11 @@ class CoffeeShopViewModel : ViewModel() {
 
             repository.getAllCoffeeShops()
                 .onSuccess { shops ->
+                    _allCoffeeShops.value = shops
+                    _ownerShops.value = shops
+
                     // 1) Radius filter (near Baguio)
-                    val nearbyShops = shops.filter { shop ->
-                        shop.location?.let { loc ->
-                            calculateDistance(baguioLat, baguioLng, loc.latitude, loc.longitude) <= maxRadiusKm
-                        } ?: false
-                    }
+                    val nearbyShops = shops.filter { shop -> isWithinRadius(shop) }
 
                     // 2) If empty and allowed, optional single-time seeding for dev convenience
                     val debugFallback = !didAttemptSeed && nearbyShops.isEmpty() &&
@@ -73,19 +79,17 @@ class CoffeeShopViewModel : ViewModel() {
                         try { SampleDataSeeder.seedSampleCoffeeShops() } catch (_: Exception) {}
                         delay(1500)
                         val seeded = repository.getAllCoffeeShops().getOrNull()
-                        val seededNearby = (seeded ?: emptyList()).filter { shop ->
-                            shop.location?.let { loc ->
-                                calculateDistance(baguioLat, baguioLng, loc.latitude, loc.longitude) <= maxRadiusKm
-                            } ?: false
-                        }
-                        _allCoffeeShops.value = seededNearby
+                        val seededList = seeded ?: emptyList()
+                        _allCoffeeShops.value = seededList
+                        _ownerShops.value = seededList
+                        val seededNearby = seededList.filter { shop -> isWithinRadius(shop) }
+                        _coffeeShops.value = seededNearby
                         applySearchFilter()
                         android.util.Log.d("CoffeeShopViewModel", "After seeding, loaded ${seededNearby.size} shops")
                         _isLoading.value = false
                         return@onSuccess
                     }
 
-                    _allCoffeeShops.value = nearbyShops
                     applySearchFilter()
                     android.util.Log.d("CoffeeShopViewModel", "Loaded ${nearbyShops.size} nearby shops (pre-filter mode)")
                 }
@@ -110,7 +114,7 @@ class CoffeeShopViewModel : ViewModel() {
     
     private fun applySearchFilter() {
         val base = _allCoffeeShops.value.filter { shop ->
-            matchesFilterMode(shop, _filterMode.value)
+            isWithinRadius(shop) && matchesFilterMode(shop, _filterMode.value)
         }
         _coffeeShops.value = if (_searchQuery.value.isEmpty()) base else base.filter { shop ->
             shop.name.contains(_searchQuery.value, ignoreCase = true) ||
@@ -118,6 +122,12 @@ class CoffeeShopViewModel : ViewModel() {
             shop.type.contains(_searchQuery.value, ignoreCase = true) ||
             shop.description.contains(_searchQuery.value, ignoreCase = true)
         }
+    }
+
+    private fun isWithinRadius(shop: CoffeeShop): Boolean {
+        return shop.location?.let { loc ->
+            calculateDistance(baguioLat, baguioLng, loc.latitude, loc.longitude) <= maxRadiusKm
+        } ?: false
     }
 
     private fun matchesFilterMode(shop: CoffeeShop, mode: FilterMode): Boolean {
@@ -179,7 +189,7 @@ class CoffeeShopViewModel : ViewModel() {
         android.util.Log.d("CoffeeShopViewModel", "Selected shop: ${shop?.name ?: "null"}")
     }
     
-    fun submitRating(shopId: String, userId: String, ratingValue: Double) {
+    fun submitRating(shopId: String, userId: String, ratingValue: Double, comment: String = "") {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -189,6 +199,39 @@ class CoffeeShopViewModel : ViewModel() {
                 .onSuccess {
                     _ratingSubmitted.value = true
                     android.util.Log.d("CoffeeShopViewModel", "Rating submitted successfully")
+                    
+                    // Award points for rating
+                    val shop = _coffeeShops.value.find { it.id == shopId }
+                    shop?.let {
+                        val ratingId = "${userId}_${System.currentTimeMillis()}"
+                        
+                        // Award points for rating
+                        pointsRepository.awardPoints(
+                            userId = userId,
+                            points = UserPoints.POINTS_PER_RATING,
+                            action = "rating",
+                            description = "Rated ${it.name}",
+                            relatedId = ratingId
+                        )
+                        
+                        // If comment is provided and detailed, award review points
+                        if (comment.isNotBlank()) {
+                            val points = if (comment.length >= 50) {
+                                UserPoints.POINTS_PER_DETAILED_REVIEW
+                            } else {
+                                UserPoints.POINTS_PER_REVIEW
+                            }
+                            
+                            pointsRepository.awardPoints(
+                                userId = userId,
+                                points = points,
+                                action = "review",
+                                description = "Reviewed ${it.name}",
+                                relatedId = ratingId
+                            )
+                        }
+                    }
+                    
                     // Immediately reload shops to get updated ratings
                     loadCoffeeShops()
                 }

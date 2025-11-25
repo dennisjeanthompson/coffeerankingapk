@@ -32,32 +32,64 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.coffeerankingapk.ui.components.AppCard
 import com.example.coffeerankingapk.ui.components.CouponCard
 import com.example.coffeerankingapk.ui.theme.*
+import com.example.coffeerankingapk.viewmodel.CouponViewModel
+import com.example.coffeerankingapk.viewmodel.CoffeeShopViewModel
+import com.example.coffeerankingapk.viewmodel.PointsViewModel
+import com.example.coffeerankingapk.data.model.UserPoints
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RewardsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    couponViewModel: CouponViewModel = viewModel(),
+    coffeeShopViewModel: CoffeeShopViewModel = viewModel(),
+    pointsViewModel: PointsViewModel = viewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     
-    // Mock data
-    val loyaltyPoints = 2450
-    val nextRewardThreshold = 3000
+    val auth = FirebaseAuth.getInstance()
+    val currentUserId = auth.currentUser?.uid ?: ""
+    
+    // Load real coupons from Firestore
+    val allCoupons by couponViewModel.allActiveCoupons.collectAsState()
+    val coffeeShops by coffeeShopViewModel.coffeeShops.collectAsState()
+    
+    // Load points and leaderboard
+    val userPoints by pointsViewModel.userPoints.collectAsState()
+    val leaderboard by pointsViewModel.leaderboard.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        couponViewModel.loadAllActiveCoupons()
+        coffeeShopViewModel.loadCoffeeShops()
+        pointsViewModel.loadUserPoints()
+        pointsViewModel.loadLeaderboard(100)
+    }
+    
+    // Mock data for tasks (we can implement this later)
+    val loyaltyPoints = userPoints?.totalPoints ?: 0
+    val currentLevel = userPoints?.currentLevel ?: 1
+    val nextRewardThreshold = UserPoints.LEVEL_THRESHOLDS.getOrNull(currentLevel) ?: 100
     
     val earnedCoupons = listOf(
         RewardCouponData(
@@ -76,18 +108,10 @@ fun RewardsScreen(
         )
     )
     
-    val leaderboardData = listOf(
-        LeaderboardItem("Anita Max", "#1", 10070),
-        LeaderboardItem("Wyn Merlo", "#2", 10004),
-        LeaderboardItem("Maria Wan", "#3", 8953),
-        LeaderboardItem("Andrea Palakit", "#4", 8863),
-        LeaderboardItem("Sarah Chen", "#127", 2450) // Current user
-    )
-    
     val tasks = listOf(
-        TaskItem("Rate Ui-Matcha Drinks", "4.2 (88 reviews)", "+100 points", false),
-        TaskItem("Rate Mangku's Sugar", "20% off Discount", "+100 points", true),
-        TaskItem("Rate Dabaig Coffee's Latte", "50php off on first orders", "+100 points", false)
+        TaskItem("Rate a Coffee Shop", "Earn ${UserPoints.POINTS_PER_RATING} points", "+${UserPoints.POINTS_PER_RATING} points", false),
+        TaskItem("Write a Review", "Earn up to ${UserPoints.POINTS_PER_DETAILED_REVIEW} points", "+${UserPoints.POINTS_PER_DETAILED_REVIEW} points", false),
+        TaskItem("Redeem a Coupon", "Earn ${UserPoints.POINTS_PER_COUPON_REDEEM} points", "+${UserPoints.POINTS_PER_COUPON_REDEEM} points", false)
     )
     
     Scaffold(
@@ -141,13 +165,13 @@ fun RewardsScreen(
                     
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Sarah Chen",
+                            text = userPoints?.displayName ?: "Coffee Lover",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryBrown
                         )
                         Text(
-                            text = "Coffee Enthusiast",
+                            text = UserPoints.getLevelTitle(currentLevel),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextMuted
                         )
@@ -176,7 +200,7 @@ fun RewardsScreen(
                 LevelProgressBar(
                     currentPoints = loyaltyPoints,
                     nextThreshold = nextRewardThreshold,
-                    currentLevel = 7,
+                    currentLevel = currentLevel,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
@@ -191,7 +215,7 @@ fun RewardsScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Rewards") },
+                    text = { Text("Coupons") },
                     selectedContentColor = Color.White,
                     unselectedContentColor = Color.White.copy(alpha = 0.7f)
                 )
@@ -218,10 +242,378 @@ fun RewardsScreen(
                     .background(BgCream)
             ) {
                 when (selectedTab) {
-                    0 -> RewardsTab(earnedCoupons)
-                    1 -> LeaderboardTab(leaderboardData)
+                    0 -> RealCouponsTab(
+                        coupons = allCoupons,
+                        coffeeShops = coffeeShops,
+                        onRedeemCoupon = { couponViewModel.redeemCoupon(it) }
+                    )
+                    1 -> RealLeaderboardTab(
+                        leaderboard = leaderboard,
+                        currentUserId = currentUserId
+                    )
                     2 -> TasksTab(tasks)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RealCouponsTab(
+    coupons: List<com.example.coffeerankingapk.data.model.Coupon>,
+    coffeeShops: List<com.example.coffeerankingapk.data.model.CoffeeShop>,
+    onRedeemCoupon: (String) -> Unit
+) {
+    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    
+    if (coupons.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "No Active Coupons",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBrown
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Check back soon for new deals from coffee shops!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMuted,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Text(
+                    text = "Available Coupons",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBrown
+                )
+            }
+            
+            items(coupons) { coupon ->
+                val shop = coffeeShops.find { it.id == coupon.shopId }
+                val isExpiringSoon = run {
+                    val daysUntilExpiry = (coupon.expiryDate.time - Date().time) / (1000 * 60 * 60 * 24)
+                    daysUntilExpiry in 1..7
+                }
+                
+                AppCard(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        // Shop name header
+                        Text(
+                            text = shop?.name ?: "Unknown Shop",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = PrimaryBrown,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Coupon title
+                        Text(
+                            text = coupon.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBrown
+                        )
+                        
+                        // Description
+                        if (coupon.description.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = coupon.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextMuted
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Discount badge
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = PrimaryBrown,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = if (coupon.discountPercent > 0) {
+                                    "${coupon.discountPercent}% OFF"
+                                } else {
+                                    "$${coupon.discountAmount} OFF"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Details
+                        if (coupon.minimumPurchase > 0) {
+                            Text(
+                                text = "Min. purchase: $${coupon.minimumPurchase}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted
+                            )
+                        }
+                        
+                        Text(
+                            text = if (isExpiringSoon) {
+                                "⏰ Expires soon: ${dateFormat.format(coupon.expiryDate)}"
+                            } else {
+                                "Valid until ${dateFormat.format(coupon.expiryDate)}"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isExpiringSoon) MaterialTheme.colorScheme.error else TextMuted,
+                            fontWeight = if (isExpiringSoon) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                        
+                        if (coupon.maxRedemptions > 0) {
+                            val remaining = coupon.maxRedemptions - coupon.currentRedemptions
+                            Text(
+                                text = "$remaining remaining",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (remaining < 10) MaterialTheme.colorScheme.error else TextMuted
+                            )
+                        }
+                        
+                        // Coupon code and redeem button
+                        if (coupon.code.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Coupon Code",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextMuted
+                                    )
+                                    Text(
+                                        text = coupon.code,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryBrown
+                                    )
+                                }
+                                
+                                Text(
+                                    text = "Use Now",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .background(Success, RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RealLeaderboardTab(
+    leaderboard: List<UserPoints>,
+    currentUserId: String
+) {
+    if (leaderboard.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = TextMuted
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No Rankings Yet",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBrown
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Start earning points to appear on the leaderboard!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMuted,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                Text(
+                    text = "Top Coffee Lovers 🏆",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBrown,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            
+            items(leaderboard) { userPoint ->
+                val isCurrentUser = userPoint.userId == currentUserId
+                RealLeaderboardItemCard(
+                    userPoints = userPoint,
+                    isCurrentUser = isCurrentUser
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RealLeaderboardItemCard(
+    userPoints: UserPoints,
+    isCurrentUser: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val rankColor = when (userPoints.rank) {
+        1 -> Color(0xFFFFD700) // Gold
+        2 -> Color(0xFFC0C0C0) // Silver
+        3 -> Color(0xFFCD7F32) // Bronze
+        else -> PrimaryBrown
+    }
+    
+    val rankEmoji = when (userPoints.rank) {
+        1 -> "🥇"
+        2 -> "🥈"
+        3 -> "🥉"
+        else -> ""
+    }
+    
+    AppCard(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    if (isCurrentUser) PrimaryBrown.copy(alpha = 0.1f) else Color.Transparent
+                )
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Rank
+            Box(
+                modifier = Modifier
+                    .width(60.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (userPoints.rank <= 3) {
+                    Text(
+                        text = rankEmoji,
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.size(40.dp)
+                    )
+                } else {
+                    Text(
+                        text = "#${userPoints.rank}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = rankColor
+                    )
+                }
+            }
+            
+            // User info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = userPoints.displayName.ifEmpty { "Anonymous" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isCurrentUser) FontWeight.Bold else FontWeight.Normal,
+                        color = PrimaryBrown,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isCurrentUser) {
+                        Text(
+                            text = "YOU",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier
+                                .background(Success, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                
+                Text(
+                    text = "Level ${userPoints.currentLevel} • ${UserPoints.getLevelTitle(userPoints.currentLevel)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
+            }
+            
+            // Points
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Points",
+                        tint = Success,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${userPoints.totalPoints}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Success
+                    )
+                }
+                Text(
+                    text = "${userPoints.totalRatings} ratings",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
             }
         }
     }

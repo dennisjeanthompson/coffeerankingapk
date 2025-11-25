@@ -16,13 +16,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.coffeerankingapk.ui.components.AppCard
 import com.example.coffeerankingapk.ui.theme.*
+import com.example.coffeerankingapk.viewmodel.PointsViewModel
+import com.example.coffeerankingapk.data.model.UserPoints
 
 @Composable
 fun ProfileScreen(
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    pointsViewModel: PointsViewModel = viewModel(),
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToProfilePicture: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToLocationSettings: () -> Unit = {},
+    onNavigateToMyReviews: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {},
+    onNavigateToAppSettings: () -> Unit = {},
+    onNavigateToHelp: () -> Unit = {},
+    onNavigateToPrivacy: () -> Unit = {},
+    onNavigateToTerms: () -> Unit = {}
 ) {
+    val userPoints by pointsViewModel.userPoints.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        pointsViewModel.loadUserPoints()
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -58,17 +77,46 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Coffee Lover",
+                        text = userPoints?.displayName ?: "Coffee Lover",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBrown
                     )
                     
                     Text(
-                        text = "coffee.lover@email.com",
+                        text = userPoints?.email ?: "coffee.lover@email.com",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextMuted
                     )
+                    
+                    // Level badge
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                PrimaryBrown,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = "Level",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Level ${userPoints?.currentLevel ?: 1} • ${UserPoints.getLevelTitle(userPoints?.currentLevel ?: 1)}",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
@@ -77,16 +125,19 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         ProfileStat(
-                            title = "Reviews",
-                            value = "24"
-                        )
-                        ProfileStat(
-                            title = "Favorites",
-                            value = "12"
-                        )
-                        ProfileStat(
                             title = "Points",
-                            value = "1,250"
+                            value = "${userPoints?.totalPoints ?: 0}",
+                            icon = Icons.Default.Star
+                        )
+                        ProfileStat(
+                            title = "Reviews",
+                            value = "${userPoints?.totalReviews ?: 0}",
+                            icon = Icons.Default.RateReview
+                        )
+                        ProfileStat(
+                            title = "Cafes Visited",
+                            value = "${userPoints?.totalCafesVisited ?: 0}",
+                            icon = Icons.Default.Place
                         )
                     }
                 }
@@ -109,7 +160,17 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Person,
                         title = "Edit Profile",
-                        subtitle = "Update your personal information"
+                        subtitle = "Update your personal information",
+                        onClick = onNavigateToEditProfile
+                    )
+                    
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+                    
+                    ProfileMenuItem(
+                        icon = Icons.Default.AccountCircle,
+                        title = "Profile Picture",
+                        subtitle = "Update your profile photo",
+                        onClick = onNavigateToProfilePicture
                     )
                     
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -117,7 +178,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Notifications,
                         title = "Notifications",
-                        subtitle = "Manage notification preferences"
+                        subtitle = "Manage notification preferences",
+                        onClick = onNavigateToNotifications
                     )
                     
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -125,7 +187,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.LocationOn,
                         title = "Location Settings",
-                        subtitle = "Manage location preferences"
+                        subtitle = "Manage location preferences",
+                        onClick = onNavigateToLocationSettings
                     )
                 }
             }
@@ -147,7 +210,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Star,
                         title = "My Reviews",
-                        subtitle = "View and manage your reviews"
+                        subtitle = "View and manage your reviews",
+                        onClick = onNavigateToMyReviews
                     )
                     
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -155,7 +219,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Favorite,
                         title = "Favorite Cafes",
-                        subtitle = "Your saved cafes"
+                        subtitle = "Your saved cafes",
+                        onClick = onNavigateToFavorites
                     )
                     
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -163,7 +228,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Settings,
                         title = "App Settings",
-                        subtitle = "Theme, language, and more"
+                        subtitle = "Theme, language, and more",
+                        onClick = onNavigateToAppSettings
                     )
                 }
             }
@@ -257,7 +323,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Info,
                         title = "Help & Support",
-                        subtitle = "Get help with the app"
+                        subtitle = "Get help with the app",
+                        onClick = onNavigateToHelp
                     )
                     
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -265,7 +332,8 @@ fun ProfileScreen(
                     ProfileMenuItem(
                         icon = Icons.Default.Info,
                         title = "About",
-                        subtitle = "App version and information"
+                        subtitle = "App version and information",
+                        onClick = onNavigateToAppSettings
                     )
                 }
             }
@@ -297,11 +365,19 @@ fun ProfileScreen(
 @Composable
 private fun ProfileStat(
     title: String,
-    value: String
+    value: String,
+    icon: ImageVector = Icons.Default.Star
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = Success,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,

@@ -23,30 +23,7 @@
 
 ---
 
-### 2. 🗺️ Turn-by-Turn Navigation (Navigation SDK)
-**Status:** ✅ Fully Integrated
-
-**What it does:**
-- Complete voice-guided navigation to any destination
-- Real-time turn-by-turn instructions
-- Visual route lines and turn arrows
-- Trip progress (ETA, distance, time remaining)
-- Interactive controls (mute, recenter, overview)
-
-**How to use:**
-1. Find coffee shops on map
-2. Tap any coffee shop marker
-3. Dialog appears: "Start navigation?"
-4. Tap "Navigate"
-5. Follow voice instructions to destination
-
-**Alternative:** Long-press anywhere on map to set custom destination
-
-**Files:**
-- `TurnByTurnNavigationActivity.kt` - Full navigation experience
-- `activity_turn_by_turn_navigation.xml` - UI layout
-- `TURN_BY_TURN_NAVIGATION.md` - Full documentation
-
+<!-- Turn-by-turn navigation section removed: feature not implemented. -->
 ---
 
 ## 🏗️ Technical Architecture
@@ -55,7 +32,7 @@
 ```
 Mapbox Maps SDK 11.9.0-ndk27     ← Map display
 Mapbox Search SDK 2.14.0-ndk27   ← Place search + Discover
-Mapbox Navigation SDK 3.0.0      ← Turn-by-turn routing
+// Mapbox Navigation SDK not included in the app (route fetching via mapbox-sdk-services if needed)
 ```
 
 ### Dependencies Resolved

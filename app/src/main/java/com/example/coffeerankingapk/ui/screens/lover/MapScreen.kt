@@ -235,22 +235,35 @@ fun MapScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Column {
                     TextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search for places...") },
+                        placeholder = { 
+                            Text(
+                                "Search for places...",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
+                            Icon(
+                                Icons.Default.Search, 
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 Icon(
                                     Icons.Default.Clear,
                                     contentDescription = "Clear",
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.clickable {
                                         searchQuery = ""
                                         showSearchResults = false
@@ -262,6 +275,11 @@ fun MapScreen(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             disabledContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         ),
                         singleLine = true
                     )
@@ -318,13 +336,14 @@ fun MapScreen(
                                     Text(
                                         text = suggestion.name,
                                         style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     if (suggestion.formattedAddress != null) {
                                         Text(
                                             text = suggestion.formattedAddress!!,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                         )
                                     }
                                 }

@@ -13,8 +13,14 @@ fun OwnerMainScreen(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToCoupons: () -> Unit = {},
     onNavigateToAddShop: () -> Unit = {},
+    onNavigateToAddCoupon: () -> Unit = {},
+    onNavigateToEditCoupon: (String) -> Unit = {},
     onNavigateToRating: (String) -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToProfilePicture: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     
@@ -59,7 +65,8 @@ fun OwnerMainScreen(
         when (selectedTab) {
             0 -> OwnerDashboardScreen(
                 onNavigateToAnalytics = { selectedTab = 2 },
-                onNavigateToCoupons = { selectedTab = 3 }
+                onNavigateToCoupons = { selectedTab = 3 },
+                onNavigateToAddShop = onNavigateToAddShop
             )
             1 -> OwnerMapScreen(
                 onNavigateToAddShop = onNavigateToAddShop,
@@ -69,10 +76,16 @@ fun OwnerMainScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
             3 -> OwnerCouponsScreen(
-                onNavigateBack = { selectedTab = 0 }
+                onNavigateBack = { selectedTab = 0 },
+                onNavigateToAddCoupon = onNavigateToAddCoupon,
+                onNavigateToEditCoupon = onNavigateToEditCoupon
             )
             4 -> OwnerProfileScreen(
-                onLogout = onLogout
+                onLogout = onLogout,
+                onNavigateToEditProfile = onNavigateToEditProfile,
+                onNavigateToProfilePicture = onNavigateToProfilePicture,
+                onNavigateToNotifications = onNavigateToNotifications,
+                onNavigateToFavorites = onNavigateToFavorites
             )
         }
     }

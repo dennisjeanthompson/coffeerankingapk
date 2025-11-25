@@ -1,6 +1,7 @@
 package com.example.coffeerankingapk.ui.screens.lover
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -8,12 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,28 +18,87 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.coffeerankingapk.data.MockData
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.clickable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.coffeerankingapk.data.model.CoffeeShop
+import com.example.coffeerankingapk.data.model.Rating
+import com.example.coffeerankingapk.data.repository.CoffeeShopRepository
 import com.example.coffeerankingapk.ui.components.AppCard
-import com.example.coffeerankingapk.ui.components.CafeListItem
-import com.example.coffeerankingapk.ui.components.PrimaryButton
 import com.example.coffeerankingapk.ui.components.RatingStars
 import com.example.coffeerankingapk.ui.theme.*
+import com.example.coffeerankingapk.viewmodel.CoffeeShopViewModel
+import com.example.coffeerankingapk.viewmodel.PointsViewModel
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoverDashboardScreen(
     onCafeClick: (String) -> Unit = {},
-    onSearchClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {}
 ) {
-    val nearbycafes = MockData.cafes.take(3)
-    val topRatedCafes = MockData.cafes.sortedByDescending { it.rating }.take(3)
-    val recentlyVisited = MockData.cafes.take(2)
+    val coffeeShopViewModel: CoffeeShopViewModel = viewModel()
+    val pointsViewModel: PointsViewModel = viewModel()
+    val allShops by coffeeShopViewModel.allCoffeeShops.collectAsState()
+    val userPoints by pointsViewModel.userPoints.collectAsState()
+    val leaderboard by pointsViewModel.leaderboard.collectAsState()
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+    val scope = rememberCoroutineScope()
+    val repository = remember { CoffeeShopRepository() }
+    
+    // State for user's ratings
+    var userRatings by remember { mutableStateOf<List<Pair<Rating, CoffeeShop>>>(emptyList()) }
+    var isLoadingRatings by remember { mutableStateOf(false) }
+    
+    // Calculate user's rank
+    val userRank = remember(leaderboard, currentUser) {
+        if (currentUser != null) {
+            val rank = leaderboard.indexOfFirst { it.userId == currentUser.uid }
+            if (rank >= 0) rank + 1 else null
+        } else null
+    }
+    
+    // Load leaderboard
+    LaunchedEffect(Unit) {
+        pointsViewModel.loadLeaderboard()
+    }
+    
+    // Load user's ratings across all shops
+    LaunchedEffect(allShops) {
+        if (allShops.isNotEmpty() && currentUser != null) {
+            isLoadingRatings = true
+            val allRatings = mutableListOf<Pair<Rating, CoffeeShop>>()
+            
+            allShops.forEach { shop ->
+                repository.getShopRatings(shop.id).onSuccess { ratings ->
+                    val userShopRatings = ratings.filter { it.userId == currentUser.uid }
+                    userShopRatings.forEach { rating ->
+                        allRatings.add(rating to shop)
+                    }
+                }
+            }
+            
+            userRatings = allRatings.sortedByDescending { it.first.timestamp }
+            isLoadingRatings = false
+        }
+    }
+    
+    // Get top 3 globally rated shops (from all shops)
+    val topRatedShops = remember(allShops) {
+        allShops
+            .filter { it.averageRating > 0 }
+            .sortedByDescending { it.averageRating }
+            .take(3)
+    }
+    
+    // Get recent activity (last 5 ratings)
+    val recentActivity = remember(userRatings) {
+        userRatings.take(5)
+    }
 
     Column(
         modifier = Modifier
@@ -86,7 +141,7 @@ fun LoverDashboardScreen(
                         
                         Column {
                             Text(
-                                text = "Sarah Chen",
+                                text = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "Coffee Lover",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -110,7 +165,7 @@ fun LoverDashboardScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // User stats row
+                // User stats row - LIVE DATA
                 AppCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -122,7 +177,7 @@ fun LoverDashboardScreen(
                     ) {
                         StatItem(
                             title = "Your Rank",
-                            value = "#127",
+                            value = if (userRank != null) "#$userRank" else "N/A",
                             color = PrimaryBrown
                         )
                         Divider(
@@ -133,53 +188,11 @@ fun LoverDashboardScreen(
                         )
                         StatItem(
                             title = "Points",
-                            value = "2,847",
+                            value = NumberFormat.getNumberInstance(Locale.US).format(userPoints?.totalPoints ?: 0),
                             color = Success
                         )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Location row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = "Location",
-                        tint = TextMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Downtown, New York",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Search bar
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = { },
-                    placeholder = { Text("Search for cafes...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    readOnly = true,
-                    enabled = false,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryBrown,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        disabledBorderColor = Color.Gray.copy(alpha = 0.3f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
             }
         }
         
@@ -188,7 +201,7 @@ fun LoverDashboardScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Recent Activity Section (matching mockup)
+            // Recent Activity Section - LIVE DATA
             item {
                 Column {
                     Text(
@@ -201,174 +214,114 @@ fun LoverDashboardScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     AppCard {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            ActivityItem(
-                                icon = Icons.Default.Star,
-                                title = "Rated Ethiopian Yirgacheffe",
-                                subtitle = "⭐⭐⭐⭐⭐ 2h ago",
-                                backgroundColor = Success.copy(alpha = 0.1f)
-                            )
-                            
-                            Divider(color = Color.Gray.copy(alpha = 0.2f))
-                            
-                            ActivityItem(
-                                icon = Icons.Default.Star,
-                                title = "Earned 'Coffee Connoisseur' Badge",
-                                subtitle = "🏆 5h ago",
-                                backgroundColor = Success.copy(alpha = 0.1f)
-                            )
-                            
-                            Divider(color = Color.Gray.copy(alpha = 0.2f))
-                            
-                            ActivityItem(
-                                icon = Icons.Default.Favorite,
-                                title = "Added Blue Mountain to Favorites",
-                                subtitle = "❤️ 1d ago",
-                                backgroundColor = Danger.copy(alpha = 0.1f)
-                            )
-                        }
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { /* View all activity */ }) {
-                            Text("View All", color = PrimaryBrown)
-                        }
-                    }
-                }
-            }
-            
-            // Your Top Rated Section (matching mockup)
-            item {
-                Column {
-                    Text(
-                        text = "Your Top Rated",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(listOf(
-                            TopRatedItem("Ethiopian Yirgacheffe", 5.0f),
-                            TopRatedItem("Blue Mountain", 4.8f), 
-                            TopRatedItem("Colon Supreme", 4.5f)
-                        )) { item ->
-                            AppCard(
-                                modifier = Modifier.width(120.dp)
+                        if (isLoadingRatings) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = PrimaryBrown)
+                            }
+                        } else if (recentActivity.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(60.dp)
-                                            .background(
-                                                PrimaryBrown.copy(alpha = 0.1f),
-                                                RoundedCornerShape(8.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "☕",
-                                            style = MaterialTheme.typography.headlineMedium
-                                        )
-                                    }
-                                    
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = "No Activity",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = TextMuted
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
                                     Text(
-                                        text = item.name,
+                                        text = "No activity yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = TextMuted
+                                    )
+                                    Text(
+                                        text = "Start rating cafes to see your activity",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = PrimaryBrown,
-                                        maxLines = 2
+                                        color = TextMuted
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                recentActivity.forEachIndexed { index, (rating, shop) ->
+                                    RealActivityItem(
+                                        rating = rating,
+                                        shop = shop,
+                                        onClick = { onCafeClick(shop.id) }
                                     )
                                     
-                                    RatingStars(
-                                        rating = item.rating,
-                                        showNumeric = false
-                                    )
+                                    if (index < recentActivity.size - 1) {
+                                        Divider(color = Color.Gray.copy(alpha = 0.2f))
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
+            
+            // Top Rated Cafes Section - GLOBAL TOP RATED
+            item {
+                Column {
+                    Text(
+                        text = "Top Rated Cafes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBrown
+                    )
                     
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { /* See all */ }) {
-                            Text("See All", color = PrimaryBrown)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    if (topRatedShops.isEmpty()) {
+                        AppCard {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "☕",
+                                        style = MaterialTheme.typography.displayMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "No rated cafes yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = TextMuted
+                                    )
+                                }
+                            }
                         }
-                    }
-                }
-            }
-            
-            // Recent Achievements (matching mockup)
-            item {
-                Column {
-                    Text(
-                        text = "Recent Achievements",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        AchievementBadge(
-                            title = "Coffee Master",
-                            icon = "☕",
-                            modifier = Modifier.weight(1f)
-                        )
-                        AchievementBadge(
-                            title = "Savings Warrior", 
-                            icon = "💰",
-                            modifier = Modifier.weight(1f)
-                        )
-                        AchievementBadge(
-                            title = "Streak Hero",
-                            icon = "🔥",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-            
-            // Quick Actions
-            item {
-                Column {
-                    Text(
-                        text = "Quick Actions",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBrown
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    OutlinedButton(
-                        onClick = { },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = PrimaryBrown
-                        )
-                    ) {
-                        Text("My Reviews")
+                    } else {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(topRatedShops) { shop ->
+                                TopRatedCafeCard(
+                                    shop = shop,
+                                    userRating = shop.averageRating.toDouble(),
+                                    onClick = { onCafeClick(shop.id) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -398,6 +351,124 @@ private fun StatItem(
             style = MaterialTheme.typography.bodySmall,
             color = TextMuted
         )
+    }
+}
+
+@Composable
+private fun RealActivityItem(
+    rating: Rating,
+    shop: CoffeeShop,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    if (rating.rating >= 4.0) Success.copy(alpha = 0.1f) else PrimaryBrown.copy(alpha = 0.1f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = if (rating.rating >= 4.0) Success else PrimaryBrown,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Rated ${shop.name}",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = PrimaryBrown
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(rating.rating.toInt()) {
+                    Text("⭐", style = MaterialTheme.typography.bodySmall)
+                }
+                Text(
+                    text = " • ${formatTimestamp(rating.timestamp)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopRatedCafeCard(
+    shop: CoffeeShop,
+    userRating: Double,
+    onClick: () -> Unit
+) {
+    AppCard(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(
+                        PrimaryBrown.copy(alpha = 0.1f),
+                        RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "☕",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = shop.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = PrimaryBrown,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            RatingStars(
+                rating = userRating.toFloat(),
+                showNumeric = true
+            )
+        }
+    }
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60_000 -> "Just now"
+        diff < 3600_000 -> "${diff / 60_000}m ago"
+        diff < 86400_000 -> "${diff / 3600_000}h ago"
+        diff < 604800_000 -> "${diff / 86400_000}d ago"
+        else -> {
+            val dateFormat = SimpleDateFormat("MMM d", Locale.getDefault())
+            dateFormat.format(Date(timestamp))
+        }
     }
 }
 

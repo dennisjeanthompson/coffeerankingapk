@@ -23,7 +23,11 @@ fun LoverMainScreen(
     onCafeClick: (String) -> Unit = {},
     onNavigateToRewards: () -> Unit = {},
     onLogout: () -> Unit = {},
-    onNavigateToRating: (String) -> Unit = {}
+    onNavigateToRating: (String) -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToProfilePicture: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var requestedMapAccess by remember { mutableStateOf(false) }
@@ -80,8 +84,7 @@ fun LoverMainScreen(
     ) { paddingValues ->
         when (selectedTab) {
             0 -> LoverDashboardScreen(
-                onCafeClick = onCafeClick,
-                onSearchClick = { /* Future: implement search */ }
+                onCafeClick = onCafeClick
             )
             1 -> {
                 // Show permission explanation or map based on permission state
@@ -106,7 +109,17 @@ fun LoverMainScreen(
                 onNavigateBack = { selectedTab = 0 }
             )
             3 -> ProfileScreen(
-                onLogout = onLogout
+                onLogout = onLogout,
+                onNavigateToEditProfile = onNavigateToEditProfile,
+                onNavigateToProfilePicture = onNavigateToProfilePicture,
+                onNavigateToNotifications = onNavigateToNotifications,
+                onNavigateToFavorites = onNavigateToFavorites,
+                onNavigateToLocationSettings = { /* TODO */ },
+                onNavigateToMyReviews = { /* TODO */ },
+                onNavigateToAppSettings = { /* TODO */ },
+                onNavigateToHelp = { /* TODO */ },
+                onNavigateToPrivacy = { /* TODO */ },
+                onNavigateToTerms = { /* TODO */ }
             )
         }
     }

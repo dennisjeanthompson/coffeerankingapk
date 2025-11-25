@@ -13,7 +13,7 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 ### For Coffee Lovers:
 - **Discover**: Browse and search local cafes
 - **Interactive Map**: View cafes on Mapbox map with search and routing
-- **Directions**: Get turn-by-turn directions to cafes
+- **Directions**: Get routing information (distance and duration) to cafes
 - **Reviews**: Rate and review cafes with 5-star system
 - **Rewards**: Earn loyalty points and redeem coupons
 - **Favorites**: Save and share favorite cafes
@@ -25,7 +25,7 @@ A native Android app built with Kotlin and Jetpack Compose that allows cafe owne
 - **UI Framework**: Jetpack Compose with Material 3
 - **Architecture**: MVVM with Hilt for Dependency Injection
 - **Navigation**: Jetpack Navigation Compose with nested graphs
-- **Maps**: Mapbox Maps SDK with Search & Navigation
+-- **Maps**: Mapbox Maps SDK with Search & Directions (Navigation SDK not included)
 - **Location**: Google Play Services Location
 - **Charts**: Custom Compose charts for analytics
 - **Authentication**: Firebase Auth (configured for stubs)
@@ -169,7 +169,7 @@ Key TODOs for production:
 1. **Firebase Auth**: Replace mock login with real Firebase Auth in `AuthScreen.kt`
 2. **Firebase Firestore**: Implement real data repositories replacing mock JSON data
 3. **Mapbox Tokens**: Add your actual Mapbox tokens (public and secret)
-4. **Mapbox Directions API**: Integrate real routing API for accurate turn-by-turn navigation
+4. **Mapbox Directions API**: Integrate real routing API for accurate routing/directions (turn-by-turn navigation is a future enhancement)
 5. **Image URLs**: Replace placeholder URLs with real cafe images
 6. **Date Pickers**: Complete coupon date picker implementation
 7. **Push Notifications**: Add FCM for rewards and updates
@@ -187,7 +187,7 @@ All dependencies are configured in `app/build.gradle`:
 - Navigation Compose for routing
 - Mapbox Maps SDK for interactive maps
 - Mapbox Search SDK for location search
-- Mapbox Navigation SDK for routing
+- Mapbox route fetching via `mapbox-sdk-services` (no Navigation SDK)
 - Google Play Services Location for user location
 - Firebase BOM for backend services
 - Coil for image loading
